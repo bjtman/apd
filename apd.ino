@@ -72,7 +72,7 @@ void setup() {
   }  
  
   // set up the LCD's number of rows and columns: 
-  lcd.begin(16, 2);
+  lcd.begin(20, 4);
   // Print a message to the LCD.
   lcd.print("Anti Predator Device");
   
@@ -89,7 +89,7 @@ void loop() {
   DateTime now = RTC.now();
   
    uint16_t x = tsl.getLuminosity(TSL2561_VISIBLE);     
-   int luminosity = x;
+ 
     //uint16_t x = tsl.getLuminosity(TSL2561_FULLSPECTRUM);
     //uint16_t x = tsl.getLuminosity(TSL2561_INFRARED);
    
@@ -104,11 +104,13 @@ void loop() {
     lcd.print(now.minute(), DEC);
     lcd.print(':');
     lcd.print(now.second(), DEC);
-    lcd.setCursor(21,3);
-   
-    //lcd.print('Luminosity: ');
-    lcd.print(luminosity);
-    delay(100);
+    lcd.setCursor(0,3);
+    lcd.print("                   ");
+    lcd.setCursor(0,3);
+    lcd.print("Luminosity: ");
+    lcd.print(x,DEC);
+    Serial.println(x,DEC);
+    delay(500);
   
 }
 

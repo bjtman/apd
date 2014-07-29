@@ -8,12 +8,16 @@
 #include <SPI.h>
 #include <RTClib.h>
 #include <RTC_DS3231.h>
-
+#include "TSL2561.h"
 
 //**TODO: evauluate if I need these globals -bjt
 const boolean BLINKM_ARDUINO_POWERED = true;
 byte blinkm_addr = 0x09; // the default address of all BlinkMs
 
+// The address will be different depending on whether you let
+// the ADDR pin float (addr 0x39), or tie it to ground or vcc. In those cases
+// use TSL2561_ADDR_LOW (0x29) or TSL2561_ADDR_HIGH (0x49) respectively
+TSL2561 tsl(TSL2561_ADDR_FLOAT); 
 
 RTC_DS3231 RTC;
 //#define SQW_FREQ DS3231_SQW_FREQ_1024     //0b00001000   1024Hz
@@ -30,6 +34,7 @@ RTC_DS3231 RTC;
 
 void setup() {
   
+  Serial.begin(19200);
   if( BLINKM_ARDUINO_POWERED )
     BlinkM_beginWithPower();
   else
@@ -40,6 +45,22 @@ void setup() {
 
   //BlinkM_setAddress( blinkm_addr );  // uncomment to set address
   
+  // Initialize lux sensor
+  if (tsl.begin()) {
+    Serial.println("Found sensor");
+  } else {
+    Serial.println("No sensor?");
+    while (1);
+  }
+  // You can change the gain on the fly, to adapt to brighter/dimmer light situations
+  //tsl.setGain(TSL2561_GAIN_0X);         // set no gain (for bright situtations)
+  tsl.setGain(TSL2561_GAIN_16X);      // set 16x gain (for dim situations)
+  // Changing the integration time gives you a longer time over which to sense light
+  // longer timelines are slower, but are good in very low light situtations!
+  tsl.setTiming(TSL2561_INTEGRATIONTIME_13MS);  // shortest integration time (bright light)
+  //tsl.setTiming(TSL2561_INTEGRATIONTIME_101MS);  // medium integration time (medium light)
+  //tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS);  // longest integration time (dim light)
+  
   RTC.begin();
   DateTime now = RTC.now();
   DateTime compiled = DateTime(__DATE__, __TIME__);
@@ -47,7 +68,7 @@ void setup() {
     //Serial.println("RTC is older than compile time!  Updating");
     RTC.adjust(DateTime(__DATE__, __TIME__));
   }  
-  Serial.begin(19200);
+ 
 
   
   
@@ -60,7 +81,9 @@ void loop() {
  
   BlinkM_fadeToRandomRGB( blinkm_addr, '100','100','100');
   DateTime now = RTC.now();
-  
+   uint16_t x = tsl.getLuminosity(TSL2561_VISIBLE);     
+    //uint16_t x = tsl.getLuminosity(TSL2561_FULLSPECTRUM);
+    //uint16_t x = tsl.getLuminosity(TSL2561_INFRARED);
    
     Serial.print(now.year(), DEC);
     Serial.print('/');
@@ -74,7 +97,9 @@ void loop() {
     Serial.print(':');
     Serial.print(now.second(), DEC);
     Serial.println();
+   
   
+    Serial.println(x, DEC);
     delay(1000);
   
 }

@@ -1,5 +1,5 @@
-// APD version 1.1.01
-// 7/29/14
+// APD version 1.1.02
+// 7/30/14
 // Brian Tice
 
 #include <Wire.h>

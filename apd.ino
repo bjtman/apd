@@ -4,6 +4,7 @@
 
 #include <Wire.h>
 #include <SPI.h>
+#include <SD.h>
 #include "BlinkM_funcs.h"
 
 #include <avr/pgmspace.h>  // for progmem stuff
@@ -34,9 +35,20 @@ RTC_DS3231 RTC;
 
 //volatile long TOGGLE_COUNT = 0;
 
+const int chipSelect = 53;
+
+File dataFile;
+
+
 void setup() {
   
   Serial.begin(19200);
+  // On the Ethernet Shield, CS is pin 4. It's set as an output by default.
+  // Note that even if it's not used as the CS pin, the hardware SS pin
+  // (10 on most Arduino boards, 53 on the Mega) must be left as an output
+  // or the SD library functions will not work.
+  pinMode(53, OUTPUT);     // change this to 53 on a mega
+  
   if( BLINKM_ARDUINO_POWERED )
     BlinkM_beginWithPower();
   else
@@ -79,10 +91,31 @@ void setup() {
   
   lookForBlinkM();
 
-
+   Serial.print("Initializing SD card...");
+  // make sure that the default chip select pin is set to
+  // output, even if you don't use it:
+  pinMode(SS, OUTPUT);
+  
+  // see if the card is present and can be initialized:
+  if (!SD.begin(chipSelect)) {
+    Serial.println("Card failed, or not present");
+    // don't do anything more:
+    while (1) ;
+  }
+  Serial.println("card initialized.");
+  
+  // Open up the file we're going to log to!
+  dataFile = SD.open("datalog.txt", FILE_WRITE);
+  if (! dataFile) {
+    Serial.println("error opening datalog.txt");
+    // Wait forever since we cant write data
+    while (1) ;
+  }
+   
 }
 
 void loop() {
+  
  
    lcd.setCursor(0, 1);
   BlinkM_fadeToRandomRGB( blinkm_addr, '100','100','100');
@@ -104,12 +137,35 @@ void loop() {
     lcd.print(now.minute(), DEC);
     lcd.print(':');
     lcd.print(now.second(), DEC);
+    
+    dataFile.print(now.year(), DEC);
+    dataFile.print('/');
+    dataFile.print(now.month(), DEC);
+    dataFile.print('/');
+    dataFile.print(now.day(), DEC);
+    dataFile.print(' ');
+    dataFile.print(now.hour(), DEC);
+    dataFile.print(':');
+    dataFile.print(now.minute(), DEC);
+    dataFile.print(':');
+    dataFile.print(now.second(), DEC);
+    
+    
     lcd.setCursor(0,3);
     lcd.print("                   ");
     lcd.setCursor(0,3);
     lcd.print("Luminosity: ");
     lcd.print(x,DEC);
     Serial.println(x,DEC);
+    dataFile.println(x,DEC);
+   
+    // The following line will 'save' the file to the SD card after every
+    // line of data - this will use more power and slow down how much data
+    // you can read but it's safer! 
+    // If you want to speed up the system, remove the call to flush() and it
+    // will save the file only every 512 bytes - every time a sector on the 
+    // SD card is filled with data.
+    dataFile.flush();
     delay(500);
   
 }

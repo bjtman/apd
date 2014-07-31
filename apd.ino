@@ -1,4 +1,4 @@
-// APD version 1.1.03
+// APD version 1.1.04
 // 7/31/14
 // Brian Tice
 
@@ -52,6 +52,13 @@ RTC_DS3231 RTC;
 // Create constant for Piezo Sounder HiLo alarm
 #define PIEZOSOUNDERPIN 22
 
+// Create Constants for Keypad items
+#define button1 30
+#define button2 31
+#define button3 32
+#define button4 33
+#define button5 34
+
 Adafruit_VS1053_FilePlayer musicPlayer = 
   // create breakout-example object!
   Adafruit_VS1053_FilePlayer(BREAKOUT_RESET, BREAKOUT_CS, BREAKOUT_DCS, DREQ, CARDCS);
@@ -75,6 +82,14 @@ void setup() {
   
   // Set up Piezo Sounder
   pinMode(PIEZOSOUNDERPIN,OUTPUT);
+  
+  // Set up Keypad inputs
+  // initialize the pushbutton pin as an input:
+  pinMode(button1, INPUT);
+  pinMode(button2, INPUT);
+  pinMode(button3, INPUT);
+  pinMode(button4, INPUT);
+  pinMode(button5, INPUT);
   
   if( BLINKM_ARDUINO_POWERED )
     BlinkM_beginWithPower();

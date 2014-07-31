@@ -1,5 +1,5 @@
-// APD version 1.1.02
-// 7/30/14
+// APD version 1.1.03
+// 7/31/14
 // Brian Tice
 
 #include <Wire.h>
@@ -49,6 +49,9 @@ RTC_DS3231 RTC;
 // DREQ should be an Int pin, see http://arduino.cc/en/Reference/attachInterrupt
 #define DREQ 3       // VS1053 Data request, ideally an Interrupt pin
 
+// Create constant for Piezo Sounder HiLo alarm
+#define PIEZOSOUNDERPIN 22
+
 Adafruit_VS1053_FilePlayer musicPlayer = 
   // create breakout-example object!
   Adafruit_VS1053_FilePlayer(BREAKOUT_RESET, BREAKOUT_CS, BREAKOUT_DCS, DREQ, CARDCS);
@@ -69,6 +72,9 @@ void setup() {
   // (10 on most Arduino boards, 53 on the Mega) must be left as an output
   // or the SD library functions will not work.
   pinMode(53, OUTPUT);     // change this to 53 on a mega
+  
+  // Set up Piezo Sounder
+  pinMode(PIEZOSOUNDERPIN,OUTPUT);
   
   if( BLINKM_ARDUINO_POWERED )
     BlinkM_beginWithPower();
@@ -184,6 +190,10 @@ void loop() {
       if (! musicPlayer.paused()) {
         Serial.println("Paused");
         musicPlayer.pausePlaying(true);
+        digitalWrite(PIEZOSOUNDERPIN,HIGH);
+        delay(500);
+        digitalWrite(PIEZOSOUNDERPIN,LOW);
+        
       } else { 
         Serial.println("Resumed");
         musicPlayer.pausePlaying(false);

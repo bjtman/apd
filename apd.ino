@@ -22,16 +22,55 @@
                              // Note this is latest version of this library from 
                              // adafruit that includes I2C support
 
+                             // These are the pins used for the breakout example
+#define BREAKOUT_RESET  9    // VS1053 reset pin (output)
+#define BREAKOUT_CS     10   // VS1053 chip select pin (output)
+#define BREAKOUT_DCS    8    // VS1053 Data/command select pin (output)
+                             // These are the pins used for the music maker shield
+#define SHIELD_CS     7      // VS1053 chip select pin (output)
+#define SHIELD_DCS    6      // VS1053 Data/command select pin (output)
+
+// These are common pins between breakout and shield
+#define CARDCS 4     // Card chip select pin
+// DREQ should be an Int pin, see http://arduino.cc/en/Reference/attachInterrupt
+#define DREQ 3       // VS1053 Data request, ideally an Interrupt pin
+
+
+// Class declarations for system
+
+TSL2561 tsl(TSL2561_ADDR_FLOAT);    // Need this for Luminosity sensor. Default I2C address is: 0x09 = TSL2561_ADDR_FLOAT
+                                    // This can be changed by soldering jumpers on the sensor
+                                    // The address will be different depending on whether you let
+                                    // the ADDR pin float (addr 0x39), or tie it to ground or vcc. In those cases
+                                    // use TSL2561_ADDR_LOW (0x29) or TSL2561_ADDR_HIGH (0x49) respectively
+                                    
+LiquidCrystal lcd(0);               // Need this to initialize the I2C backpack / LCD combo             
+                                    // Connect via i2c, default address #0 (A0-A2 not jumpered)
+                                    // I2C address for LCD is 0x00 without soldering jumper headers
+                                    // I did not jump A0-A2 which is why lcd is initialized as lcd(0)
+                                    
+RTC_DS3231 RTC;                     // Need this to create an instance of the RTC_DS3231 class for real time clock
+                                    // located in RTC_DS.3231.h
+                                    
+                                    
+Adafruit_VS1053_FilePlayer musicPlayer =     // Need this to create instance of music player class and File Player   
+
+                                             // create breakout-example object!
+  
+  Adafruit_VS1053_FilePlayer(BREAKOUT_RESET, BREAKOUT_CS, BREAKOUT_DCS, DREQ, CARDCS);
+                                             // create shield-example object!
+                                             //Adafruit_VS1053_FilePlayer(SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);                                   
+                                  
+File dataFile;                      // Need this to declare a File instance for use in datalogging.
+
+
+
+
 //**TODO: evauluate if I need these globals -bjt
 const boolean BLINKM_ARDUINO_POWERED = true;
 byte blinkm_addr = 0x09; // the default address of all BlinkMs
 
-// The address will be different depending on whether you let
-// the ADDR pin float (addr 0x39), or tie it to ground or vcc. In those cases
-// use TSL2561_ADDR_LOW (0x29) or TSL2561_ADDR_HIGH (0x49) respectively
-TSL2561 tsl(TSL2561_ADDR_FLOAT); 
-LiquidCrystal lcd(0);
-RTC_DS3231 RTC;
+
 //#define SQW_FREQ DS3231_SQW_FREQ_1024     //0b00001000   1024Hz
 //#define PWM_COUNT 1020   //determines how often the LED flips
 //#define LOOP_DELAY 5000 //ms delay time in loop
@@ -44,18 +83,7 @@ RTC_DS3231 RTC;
 
 //volatile long TOGGLE_COUNT = 0;
 
-// These are the pins used for the breakout example
-#define BREAKOUT_RESET  9      // VS1053 reset pin (output)
-#define BREAKOUT_CS     10     // VS1053 chip select pin (output)
-#define BREAKOUT_DCS    8      // VS1053 Data/command select pin (output)
-// These are the pins used for the music maker shield
-#define SHIELD_CS     7      // VS1053 chip select pin (output)
-#define SHIELD_DCS    6      // VS1053 Data/command select pin (output)
 
-// These are common pins between breakout and shield
-#define CARDCS 4     // Card chip select pin
-// DREQ should be an Int pin, see http://arduino.cc/en/Reference/attachInterrupt
-#define DREQ 3       // VS1053 Data request, ideally an Interrupt pin
 
 // Create constant for Piezo Sounder HiLo alarm
 #define PIEZOSOUNDERPIN 22
@@ -70,16 +98,12 @@ const int button1 = 30;
 int buttonState = 0;         // variable for reading the pushbutton status
 
 
-Adafruit_VS1053_FilePlayer musicPlayer = 
-  // create breakout-example object!
-  Adafruit_VS1053_FilePlayer(BREAKOUT_RESET, BREAKOUT_CS, BREAKOUT_DCS, DREQ, CARDCS);
-  // create shield-example object!
-  //Adafruit_VS1053_FilePlayer(SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
+
 
 //DATALOGGER STUFF:
 const int chipSelect = 53;
 
-File dataFile;
+
 
 //PIR sensor's setup variables
 

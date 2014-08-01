@@ -1,18 +1,26 @@
-// APD version 1.1.05
+// APD version 1.1.06
 // 7/31/14
 // Brian Tice
 
-#include <Wire.h>
-#include <SPI.h>
-#include <SD.h>
-#include "BlinkM_funcs.h"
+#include <Wire.h>            // Need this for I2C support
+#include <SPI.h>             // Need this for SPI communication Support
+#include <SD.h>              // Need this for microSD card read and write
+                             // Note: SDFAT.h is supposedly faster and supports two  SD cards
+                             //       Sticking with SD.h for now mostly because the Adafruit 
+                             //       Library for VS1053 mp3 player is written using SD.h.
 
-#include <avr/pgmspace.h>  // for progmem stuff
-#include <RTClib.h>
-#include <RTC_DS3231.h>
-#include <TSL2561.h>
-#include <Adafruit_VS1053.h>
-#include "LiquidCrystal.h"
+#include "BlinkM_funcs.h"    // Need this for BlinkM routines for RGB led clusters.
+                             // This 'library' is a little different that the others in that its 
+                             // functions are housed in a file associated with main sketch called BlinkM_funcs.h
+                             
+#include <avr/pgmspace.h>    // for progmem stuff
+#include <RTClib.h>          // Need this for ChronoDot real time clock library functions 
+#include <RTC_DS3231.h>      // Need this for the particular Chip used on the ChronoDot 2.0
+#include <TSL2561.h>         // Need this for Luminosity sensor support
+#include <Adafruit_VS1053.h> // Need this for music player library functions
+#include "LiquidCrystal.h"   // Need this for I2C backback and LCD display
+                             // Note this is latest version of this library from 
+                             // adafruit that includes I2C support
 
 //**TODO: evauluate if I need these globals -bjt
 const boolean BLINKM_ARDUINO_POWERED = true;
@@ -53,11 +61,14 @@ RTC_DS3231 RTC;
 #define PIEZOSOUNDERPIN 22
 
 // Create Constants for Keypad items
-#define button1 30
+const int button1 = 30;
 #define button2 31
 #define button3 32
 #define button4 33
 #define button5 34
+// variables will change:
+int buttonState = 0;         // variable for reading the pushbutton status
+
 
 Adafruit_VS1053_FilePlayer musicPlayer = 
   // create breakout-example object!
@@ -211,6 +222,17 @@ void setup() {
 
 void loop() {
   
+  // read the state of the pushbutton value:
+  buttonState = digitalRead(button1);   
+  if (buttonState == HIGH) {
+    // turn LED on:
+    digitalWrite(ledPin, HIGH);
+  }
+  else {
+    // turn LED off:
+    digitalWrite(ledPin, LOW);
+  }
+  
   
    if (Serial.available()) {
     char c = Serial.read();
@@ -236,14 +258,14 @@ void loop() {
       Serial.println(F("Playing track 002"));
       musicPlayer.startPlayingFile("track002.mp3");
     }
-      
+    
     // if we get an 'p' on the serial console, pause/unpause!
-    if (c == 'p') {
+    if (c == 'p' || (buttonState == HIGH)) {
       if (! musicPlayer.paused()) {
         Serial.println("Paused");
         musicPlayer.pausePlaying(true);
         
-        // *** PIEZO READ ROUTINE
+        // *** PIR READ ROUTINE
         // 
         if(digitalRead(pirPin) == HIGH){
           digitalWrite(ledPin, HIGH);   //the led visualizes the sensors output pin state

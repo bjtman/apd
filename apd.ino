@@ -30,12 +30,22 @@
 #define SHIELD_CS     7      // VS1053 chip select pin (output)
 #define SHIELD_DCS    6      // VS1053 Data/command select pin (output)
 
+
+#define PIEZO_SOUNDER_PIN    22    // Create constant for Piezo Sounder HiLo alarm
+#define MICRO_SD_CHIP_SELECT 53    // Chip select constant for MicroSD datalogger
+
+
 // These are common pins between breakout and shield
 #define CARDCS 4     // Card chip select pin
 // DREQ should be an Int pin, see http://arduino.cc/en/Reference/attachInterrupt
 #define DREQ 3       // VS1053 Data request, ideally an Interrupt pin
 
-
+// Create Constants for Keypad items
+#define BUTTON_PIN_1     30
+#define BUTTON_PIN_2     31
+#define BUTTON_PIN_3     32
+#define BUTTON_PIN_4     33
+#define BUTTON_PIN_5     34
 // Class declarations for system
 
 TSL2561 tsl(TSL2561_ADDR_FLOAT);    // Need this for Luminosity sensor. Default I2C address is: 0x09 = TSL2561_ADDR_FLOAT
@@ -90,15 +100,8 @@ byte blinkm_addr_c = 0x0D;          // I2C Address of one of the LED's. LED C
 
 
 
-// Create constant for Piezo Sounder HiLo alarm
-#define PIEZOSOUNDERPIN 22
 
-// Create Constants for Keypad items
-const int button1 = 30;
-#define button2 31
-#define button3 32
-#define button4 33
-#define button5 34
+
 // variables will change:
 int buttonState = 0;         // variable for reading the pushbutton status
 
@@ -133,6 +136,7 @@ const int ledPin = 40;   //Motion indicated on PIR 1
 
 void setup() {
    
+  initialize_real_time_clock();
   initialize_and_test_leds();
     
   Serial.begin(19200);
@@ -140,18 +144,18 @@ void setup() {
   // Note that even if it's not used as the CS pin, the hardware SS pin
   // (10 on most Arduino boards, 53 on the Mega) must be left as an output
   // or the SD library functions will not work.
-  pinMode(53, OUTPUT);     // change this to 53 on a mega
+  pinMode(MICRO_SD_CHIP_SELECT, OUTPUT);     // change this to 53 on a mega
  // pinMode(A4,OUTPUT);
   // Set up Piezo Sounder
-  pinMode(PIEZOSOUNDERPIN,OUTPUT);
+  pinMode(PIEZO_SOUNDER_PIN,OUTPUT);
   
   // Set up Keypad inputs
   // initialize the pushbutton pin as an input:
-  pinMode(button1, INPUT);
-  pinMode(button2, INPUT);
-  pinMode(button3, INPUT);
-  pinMode(button4, INPUT);
-  pinMode(button5, INPUT);
+  pinMode(BUTTON_PIN_1, INPUT);
+  pinMode(BUTTON_PIN_2, INPUT);
+  pinMode(BUTTON_PIN_3, INPUT);
+  pinMode(BUTTON_PIN_4, INPUT);
+  pinMode(BUTTON_PIN_5, INPUT);
   
   // Setup PIR sensor 
   pinMode(pirPin, INPUT);
@@ -190,13 +194,7 @@ void setup() {
   //tsl.setTiming(TSL2561_INTEGRATIONTIME_101MS);  // medium integration time (medium light)
   //tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS);  // longest integration time (dim light)
   
-  RTC.begin();
-  DateTime now = RTC.now();
-  DateTime compiled = DateTime(__DATE__, __TIME__);
-  if (now.unixtime() < compiled.unixtime()) {
-    //Serial.println("RTC is older than compile time!  Updating");
-    RTC.adjust(DateTime(__DATE__, __TIME__));
-  }  
+  
  
   // set up the LCD's number of rows and columns: 
   lcd.begin(20, 4);
@@ -248,7 +246,7 @@ void setup() {
 void loop() {
   
   // read the state of the pushbutton value:
-  buttonState = digitalRead(button1);   
+  buttonState = digitalRead(BUTTON_PIN_1);   
   if (buttonState == HIGH) {
     // turn LED on:
     digitalWrite(ledPin, HIGH);
@@ -305,9 +303,9 @@ void loop() {
             delay(50);
             // PIEZO SENSOR ACTUATION ROUTINE
             //
-            digitalWrite(PIEZOSOUNDERPIN,HIGH);
+            digitalWrite(PIEZO_SOUNDER_PIN,HIGH);
             delay(500);
-            digitalWrite(PIEZOSOUNDERPIN,LOW);
+            digitalWrite(PIEZO_SOUNDER_PIN,LOW);
             //
             // DONE PIEZO
           }         
@@ -443,5 +441,16 @@ void initialize_and_test_leds() {
   BlinkM_stopScript(blinkm_addr_c);
 //  delay(100);
   BlinkM_fadeToRGB(blinkm_addr_c, 0,0,0);  
+}
+
+void initialize_real_time_clock() {
+  
+  RTC.begin();
+  DateTime now = RTC.now();
+  DateTime compiled = DateTime(__DATE__, __TIME__);
+  if (now.unixtime() < compiled.unixtime()) {
+    //Serial.println("RTC is older than compile time!  Updating");
+    RTC.adjust(DateTime(__DATE__, __TIME__));
+  }  
 }
 

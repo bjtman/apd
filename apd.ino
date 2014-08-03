@@ -1,7 +1,7 @@
 // APD version 1.1.06
 // 7/31/14
 // Brian Tice
-
+#include <Arduino.h>
 #include <Wire.h>            // Need this for I2C support
 #include <SPI.h>             // Need this for SPI communication Support
 #include <SD.h>              // Need this for microSD card read and write
@@ -64,11 +64,16 @@ Adafruit_VS1053_FilePlayer musicPlayer =     // Need this to create instance of 
 File dataFile;                      // Need this to declare a File instance for use in datalogging.
 
 
+const boolean BLINKM_ARDUINO_POWERED = true;  // For now this is true. This will change when moving for bench
+                                              // testing to field testing
+
+byte blinkm_addr_a = 0x09;          // I2C Address of one of the LED's. LED A
+byte blinkm_addr_b = 0x0C;          // I2C Address of one of the LED's. LED B 
+byte blinkm_addr_c = 0x0D;          // I2C Address of one of the LED's. LED C
 
 
-//**TODO: evauluate if I need these globals -bjt
-const boolean BLINKM_ARDUINO_POWERED = true;
-byte blinkm_addr = 0x09; // the default address of all BlinkMs
+
+
 
 
 //#define SQW_FREQ DS3231_SQW_FREQ_1024     //0b00001000   1024Hz
@@ -127,14 +132,16 @@ const int ledPin = 40;   //Motion indicated on PIR 1
 
 
 void setup() {
-  
+   
+  initialize_and_test_leds();
+    
   Serial.begin(19200);
   // On the Ethernet Shield, CS is pin 4. It's set as an output by default.
   // Note that even if it's not used as the CS pin, the hardware SS pin
   // (10 on most Arduino boards, 53 on the Mega) must be left as an output
   // or the SD library functions will not work.
   pinMode(53, OUTPUT);     // change this to 53 on a mega
-  
+ // pinMode(A4,OUTPUT);
   // Set up Piezo Sounder
   pinMode(PIEZOSOUNDERPIN,OUTPUT);
   
@@ -163,15 +170,9 @@ void setup() {
     delay(50);
   
   
-  if( BLINKM_ARDUINO_POWERED )
-    BlinkM_beginWithPower();
-  else
-    BlinkM_begin();
+ 
 
-  delay(100); // wait a bit for things to stabilize
-  BlinkM_off(0);  // turn everyone off
-
-  //BlinkM_setAddress( blinkm_addr );  // uncomment to set address
+  
   
   // Initialize lux sensor
   if (tsl.begin()) {
@@ -348,7 +349,7 @@ void loop() {
   
  if (musicPlayer.stopped()) {
    lcd.setCursor(0, 1);
-  BlinkM_fadeToRandomRGB( blinkm_addr, '100','100','100');
+  BlinkM_fadeToRandomRGB( blinkm_addr_a, '100','100','100');
   DateTime now = RTC.now();
   
    uint16_t x = tsl.getLuminosity(TSL2561_VISIBLE);     
@@ -408,7 +409,39 @@ void lookForBlinkM() {
   } else { 
     Serial.print("Device found at addr ");
     Serial.println( a, DEC);
-    blinkm_addr = a;
+    blinkm_addr_a = a;
   }
+}
+
+void initialize_and_test_leds() {
+ if( BLINKM_ARDUINO_POWERED )
+    BlinkM_beginWithPower();
+  else
+    BlinkM_begin();
+  
+  
+  // Test 0x09 LED functionality
+  BlinkM_playScript( blinkm_addr_a, 18, 0x00,0x00);
+  delay(2000);
+  BlinkM_stopScript(blinkm_addr_a);
+  //delay(100);
+  BlinkM_fadeToRGB(blinkm_addr_a, 0,0,0);
+ // delay(100);
+  
+ 
+ // delay(100);
+  BlinkM_playScript( blinkm_addr_b, 18, 0x00,0x00);
+  delay(2000);
+  BlinkM_stopScript(blinkm_addr_b);
+//  delay(100);
+  BlinkM_fadeToRGB(blinkm_addr_b, 0,0,0);
+  
+  
+ // delay(100);
+  BlinkM_playScript( blinkm_addr_c, 18, 0x00,0x00);
+  delay(2000);
+  BlinkM_stopScript(blinkm_addr_c);
+//  delay(100);
+  BlinkM_fadeToRGB(blinkm_addr_c, 0,0,0);  
 }
 

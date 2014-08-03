@@ -1,4 +1,4 @@
-// APD version 1.1.07
+// APD version 1.1.08
 // 8/2/14
 // Brian Tice
 
@@ -53,7 +53,7 @@
 #define PIR_B_LED_PIN 41
 #define PIR_A_SIGNAL_PIN 2
 #define PIR_B_SIGNAL_PIN 18
-
+#define PIR_CALIBRATION_TIME 30
 
 
 // Class declarations for system
@@ -92,7 +92,39 @@ byte blinkm_addr_b = 0x0C;          // I2C Address of one of the LED's. LED B
 byte blinkm_addr_c = 0x0D;          // I2C Address of one of the LED's. LED C
 
 
-//PIR sensor's setup variables
+
+
+
+void setup() {
+   
+  initialize_real_time_clock();
+  initialize_and_test_leds();
+  initialize_pin_modes();  
+  initialize_and_calibrate_PIR_sensor_array();
+  initialize_lux_sensor();
+  initialize_lcd_backpack_and_screen();
+  initialize_datalogging_sd_card();
+  initialize_vs1053_music_player();
+  Serial.begin(19200);
+  
+  
+  
+ 
+  
+  
+  
+  //lookForBlinkM();
+
+   
+  
+  
+}
+
+void loop() {
+  
+  
+  
+  //PIR sensor's setup variables
 
 /////////////////////////////
 //VARS
@@ -112,90 +144,6 @@ boolean takeLowTime;
 // variables will change:
 int buttonState = 0;         // variable for reading the pushbutton status
 
-
-
-void setup() {
-   
-  initialize_real_time_clock();
-  initialize_and_test_leds();
-  initialize_pin_modes();  
-  initialize_and_calibrate_PIR_sensor_array();
-  Serial.begin(19200);
-  
- 
-  
-  
- 
-
-  
-  
-  // Initialize lux sensor
-  if (tsl.begin()) {
-    Serial.println("Found sensor");
-  } else {
-    Serial.println("No sensor?");
-    while (1);
-  }
-  // You can change the gain on the fly, to adapt to brighter/dimmer light situations
-  //tsl.setGain(TSL2561_GAIN_0X);         // set no gain (for bright situtations)
-  tsl.setGain(TSL2561_GAIN_16X);      // set 16x gain (for dim situations)
-  // Changing the integration time gives you a longer time over which to sense light
-  // longer timelines are slower, but are good in very low light situtations!
-  tsl.setTiming(TSL2561_INTEGRATIONTIME_13MS);  // shortest integration time (bright light)
-  //tsl.setTiming(TSL2561_INTEGRATIONTIME_101MS);  // medium integration time (medium light)
-  //tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS);  // longest integration time (dim light)
-  
-  
- 
-  // set up the LCD's number of rows and columns: 
-  lcd.begin(20, 4);
-  // Print a message to the LCD.
-  lcd.print("Anti Predator Device");
-  
-  
-  //lookForBlinkM();
-
-   Serial.print("Initializing SD card...");
-  // make sure that the default chip select pin is set to
-  // output, even if you don't use it:
- 
-  
-  // see if the card is present and can be initialized:
-  if (!SD.begin(MICRO_SD_CHIP_SELECT)) {
-    Serial.println("Card failed, or not present");
-    // don't do anything more:
-    while (1) ;
-  }
-  Serial.println("card initialized.");
-  
-  // Open up the file we're going to log to!
-  dataFile = SD.open("datalog.txt", FILE_WRITE);
-  if (! dataFile) {
-    Serial.println("error opening datalog.txt");
-    // Wait forever since we cant write data
-    while (1) ;
-  }
-  
-  if (! musicPlayer.begin()) { // initialise the music player
-        Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
-        while (1);
-  }
-  Serial.println(F("VS1053 found"));
-   
-  // Set volume for left, right channels. lower numbers == louder volume!
-  musicPlayer.setVolume(20,20);
-
-  // Timer interrupts are not suggested, better to use DREQ interrupt!
-  //musicPlayer.useInterrupt(VS1053_FILEPLAYER_TIMER0_INT); // timer int
-
-  // If DREQ is on an interrupt pin (on uno, #2 or #3) we can do background
-  // audio playing
-  musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);  // DREQ int
-   musicPlayer.startPlayingFile("track002.mp3");
-}
-
-void loop() {
-  
   // read the state of the pushbutton value:
   buttonState = digitalRead(BUTTON_PIN_1);   
   if (buttonState == HIGH) {
@@ -406,6 +354,7 @@ void initialize_real_time_clock() {
 }
 
 void initialize_pin_modes() {
+  
   pinMode(MICRO_SD_CHIP_SELECT, OUTPUT);     
   pinMode(PIEZO_SOUNDER_PIN,OUTPUT);
   pinMode(BUTTON_PIN_1, INPUT);
@@ -424,7 +373,7 @@ void initialize_and_calibrate_PIR_sensor_array() {
   
   //give the sensor some time to calibrate
   Serial.print("calibrating sensor ");
-    for(int i = 0; i < calibrationTime; i++){
+    for(int i = 0; i < PIR_CALIBRATION_TIME; i++){
       Serial.print(".");
       delay(1000);
       }
@@ -433,4 +382,77 @@ void initialize_and_calibrate_PIR_sensor_array() {
     delay(50);
 }
 
+void initialize_lux_sensor() {
+  
+  // Initialize lux sensor
+  if (tsl.begin()) {
+    Serial.println("Found sensor");
+  } else {
+    Serial.println("No sensor?");
+    while (1);
+  }
+  // You can change the gain on the fly, to adapt to brighter/dimmer light situations
+  //tsl.setGain(TSL2561_GAIN_0X);         // set no gain (for bright situtations)
+  tsl.setGain(TSL2561_GAIN_16X);      // set 16x gain (for dim situations)
+  // Changing the integration time gives you a longer time over which to sense light
+  // longer timelines are slower, but are good in very low light situtations!
+  tsl.setTiming(TSL2561_INTEGRATIONTIME_13MS);  // shortest integration time (bright light)
+  //tsl.setTiming(TSL2561_INTEGRATIONTIME_101MS);  // medium integration time (medium light)
+  //tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS);  // longest integration time (dim light)
+}
 
+void initialize_lcd_backpack_and_screen() {
+  
+  // set up the LCD's number of rows and columns: 
+  lcd.begin(20, 4);
+  // Print a message to the LCD.
+  lcd.print("Anti Predator Device");
+  
+}
+
+void initialize_datalogging_sd_card() {
+
+  Serial.print("Initializing SD card...");
+  // make sure that the default chip select pin is set to
+  // output, even if you don't use it:
+ 
+  
+  // see if the card is present and can be initialized:
+  if (!SD.begin(MICRO_SD_CHIP_SELECT)) {
+    Serial.println("Card failed, or not present");
+    // don't do anything more:
+    while (1) ;
+  }
+  Serial.println("card initialized.");
+  
+  // Open up the file we're going to log to!
+  dataFile = SD.open("datalog.txt", FILE_WRITE);
+  if (! dataFile) {
+    Serial.println("error opening datalog.txt");
+    // Wait forever since we cant write data
+    while (1) ;
+  }
+
+  
+}
+
+void initialize_vs1053_music_player() {
+   
+  if (! musicPlayer.begin()) { // initialise the music player
+        Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
+        while (1);
+  }
+  Serial.println(F("VS1053 found"));
+   
+  // Set volume for left, right channels. lower numbers == louder volume!
+  musicPlayer.setVolume(20,20);
+
+  // Timer interrupts are not suggested, better to use DREQ interrupt!
+  //musicPlayer.useInterrupt(VS1053_FILEPLAYER_TIMER0_INT); // timer int
+
+  // If DREQ is on an interrupt pin (on uno, #2 or #3) we can do background
+  // audio playing
+  musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);  // DREQ int
+   musicPlayer.startPlayingFile("track002.mp3");
+ }
+  

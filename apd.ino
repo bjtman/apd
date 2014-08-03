@@ -1,5 +1,5 @@
-// APD version 1.1.08
-// 8/2/14
+// APD version 1.1.09
+// 8/3/14
 // Brian Tice
 
 #include <Arduino.h>
@@ -56,6 +56,9 @@
 #define PIR_CALIBRATION_TIME 30
 
 
+#define STATE_IDLE_POLLING    2
+#define STATE_BUTTON_ISR      3
+
 // Class declarations for system
 
 TSL2561 tsl(TSL2561_ADDR_FLOAT);    // Need this for Luminosity sensor. Default I2C address is: 0x09 = TSL2561_ADDR_FLOAT
@@ -91,7 +94,7 @@ byte blinkm_addr_a = 0x09;          // I2C Address of one of the LED's. LED A
 byte blinkm_addr_b = 0x0C;          // I2C Address of one of the LED's. LED B 
 byte blinkm_addr_c = 0x0D;          // I2C Address of one of the LED's. LED C
 
-
+volatile int state = 0;
 
 
 
@@ -106,23 +109,34 @@ void setup() {
   initialize_datalogging_sd_card();
   initialize_vs1053_music_player();
   Serial.begin(19200);
-  
-  
-  
- 
-  
-  
-  
-  //lookForBlinkM();
-
-   
+  attachInterrupt(4,pin_19_ISR,CHANGE);
+  state = STATE_IDLE_POLLING;
   
   
 }
 
 void loop() {
   
-  
+
+  switch(state) {
+    
+    case STATE_IDLE_POLLING:
+    {
+      Serial.println("Just chilling out");
+      break;
+    }
+    case STATE_BUTTON_ISR:
+    {
+      Serial.println("Whoa dude a button was pressed!");
+      
+      // Decode buttons
+      
+      
+      
+      state = STATE_IDLE_POLLING;
+      break;
+    }
+  }
   
   //PIR sensor's setup variables
 
@@ -362,6 +376,9 @@ void initialize_pin_modes() {
   pinMode(BUTTON_PIN_3, INPUT);
   pinMode(BUTTON_PIN_4, INPUT);
   pinMode(BUTTON_PIN_5, INPUT);
+  
+  
+  
   pinMode(PIR_A_SIGNAL_PIN, INPUT);
   pinMode(PIR_B_SIGNAL_PIN, INPUT);
   pinMode(PIR_A_LED_PIN, OUTPUT);
@@ -454,5 +471,10 @@ void initialize_vs1053_music_player() {
   // audio playing
   musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);  // DREQ int
    musicPlayer.startPlayingFile("track002.mp3");
+ }
+ 
+ void pin_19_ISR() {
+   
+   state = STATE_BUTTON_ISR;
  }
   

@@ -1,6 +1,7 @@
-// APD version 1.1.06
-// 7/31/14
+// APD version 1.1.07
+// 8/2/14
 // Brian Tice
+
 #include <Arduino.h>
 #include <Wire.h>            // Need this for I2C support
 #include <SPI.h>             // Need this for SPI communication Support
@@ -23,12 +24,12 @@
                              // adafruit that includes I2C support
 
                              // These are the pins used for the breakout example
-#define BREAKOUT_RESET  9    // VS1053 reset pin (output)
+#define BREAKOUT_RESET   9   // VS1053 reset pin (output)
 #define BREAKOUT_CS     10   // VS1053 chip select pin (output)
-#define BREAKOUT_DCS    8    // VS1053 Data/command select pin (output)
+#define BREAKOUT_DCS     8   // VS1053 Data/command select pin (output)
                              // These are the pins used for the music maker shield
-#define SHIELD_CS     7      // VS1053 chip select pin (output)
-#define SHIELD_DCS    6      // VS1053 Data/command select pin (output)
+#define SHIELD_CS        7   // VS1053 chip select pin (output)
+#define SHIELD_DCS       6   // VS1053 Data/command select pin (output)
 
 
 #define PIEZO_SOUNDER_PIN    22    // Create constant for Piezo Sounder HiLo alarm
@@ -46,6 +47,15 @@
 #define BUTTON_PIN_3     32
 #define BUTTON_PIN_4     33
 #define BUTTON_PIN_5     34
+
+
+#define PIR_A_LED_PIN 40
+#define PIR_B_LED_PIN 41
+#define PIR_A_SIGNAL_PIN 2
+#define PIR_B_SIGNAL_PIN 18
+
+
+
 // Class declarations for system
 
 TSL2561 tsl(TSL2561_ADDR_FLOAT);    // Need this for Luminosity sensor. Default I2C address is: 0x09 = TSL2561_ADDR_FLOAT
@@ -82,37 +92,6 @@ byte blinkm_addr_b = 0x0C;          // I2C Address of one of the LED's. LED B
 byte blinkm_addr_c = 0x0D;          // I2C Address of one of the LED's. LED C
 
 
-
-
-
-
-//#define SQW_FREQ DS3231_SQW_FREQ_1024     //0b00001000   1024Hz
-//#define PWM_COUNT 1020   //determines how often the LED flips
-//#define LOOP_DELAY 5000 //ms delay time in loop
-
-//#define RTC_SQW_IN 5     // input square wave from RTC into T1 pin (D5)
-                               //WE USE TIMER1 so that it does not interfere with Arduino delay() command
-//#define INT0_PIN   2     // INT0 pin for 32kHz testing?
-//#define LED_PIN    9     // random LED for testing...tie to ground through series resistor..
-//#define LED_ONBAORD 13   // Instead of hooking up an LED, the nano has an LED at pin 13.
-
-//volatile long TOGGLE_COUNT = 0;
-
-
-
-
-
-// variables will change:
-int buttonState = 0;         // variable for reading the pushbutton status
-
-
-
-
-//DATALOGGER STUFF:
-const int chipSelect = 53;
-
-
-
 //PIR sensor's setup variables
 
 /////////////////////////////
@@ -130,48 +109,20 @@ long unsigned int pause = 5000;
 boolean lockLow = true;
 boolean takeLowTime;  
 
-const int pirPin = 2;    //the digital pin connected to the PIR sensor's output
-const int ledPin = 40;   //Motion indicated on PIR 1
+// variables will change:
+int buttonState = 0;         // variable for reading the pushbutton status
+
 
 
 void setup() {
    
   initialize_real_time_clock();
   initialize_and_test_leds();
-    
+  initialize_pin_modes();  
+  initialize_and_calibrate_PIR_sensor_array();
   Serial.begin(19200);
-  // On the Ethernet Shield, CS is pin 4. It's set as an output by default.
-  // Note that even if it's not used as the CS pin, the hardware SS pin
-  // (10 on most Arduino boards, 53 on the Mega) must be left as an output
-  // or the SD library functions will not work.
-  pinMode(MICRO_SD_CHIP_SELECT, OUTPUT);     // change this to 53 on a mega
- // pinMode(A4,OUTPUT);
-  // Set up Piezo Sounder
-  pinMode(PIEZO_SOUNDER_PIN,OUTPUT);
   
-  // Set up Keypad inputs
-  // initialize the pushbutton pin as an input:
-  pinMode(BUTTON_PIN_1, INPUT);
-  pinMode(BUTTON_PIN_2, INPUT);
-  pinMode(BUTTON_PIN_3, INPUT);
-  pinMode(BUTTON_PIN_4, INPUT);
-  pinMode(BUTTON_PIN_5, INPUT);
-  
-  // Setup PIR sensor 
-  pinMode(pirPin, INPUT);
-  pinMode(ledPin, OUTPUT);
-
-  digitalWrite(pirPin, LOW);
-
-  //give the sensor some time to calibrate
-  Serial.print("calibrating sensor ");
-    for(int i = 0; i < calibrationTime; i++){
-      Serial.print(".");
-      delay(1000);
-      }
-    Serial.println(" done");
-    Serial.println("SENSOR ACTIVE");
-    delay(50);
+ 
   
   
  
@@ -202,15 +153,15 @@ void setup() {
   lcd.print("Anti Predator Device");
   
   
-  lookForBlinkM();
+  //lookForBlinkM();
 
    Serial.print("Initializing SD card...");
   // make sure that the default chip select pin is set to
   // output, even if you don't use it:
-  pinMode(SS, OUTPUT);
+ 
   
   // see if the card is present and can be initialized:
-  if (!SD.begin(chipSelect)) {
+  if (!SD.begin(MICRO_SD_CHIP_SELECT)) {
     Serial.println("Card failed, or not present");
     // don't do anything more:
     while (1) ;
@@ -249,11 +200,11 @@ void loop() {
   buttonState = digitalRead(BUTTON_PIN_1);   
   if (buttonState == HIGH) {
     // turn LED on:
-    digitalWrite(ledPin, HIGH);
+    digitalWrite(PIR_A_LED_PIN, HIGH);
   }
   else {
     // turn LED off:
-    digitalWrite(ledPin, LOW);
+    digitalWrite(PIR_A_LED_PIN, LOW);
   }
   
   
@@ -266,7 +217,7 @@ void loop() {
       Serial.println("Done playing music");
       SD.end();
       delay(1000);
-      SD.begin(chipSelect);
+      SD.begin(MICRO_SD_CHIP_SELECT);
       dataFile = SD.open("datalog.txt", FILE_WRITE);
     }
     
@@ -290,8 +241,8 @@ void loop() {
         
         // *** PIR READ ROUTINE
         // 
-        if(digitalRead(pirPin) == HIGH){
-          digitalWrite(ledPin, HIGH);   //the led visualizes the sensors output pin state
+        if(digitalRead(PIR_A_SIGNAL_PIN) == HIGH){
+          digitalWrite(PIR_A_SIGNAL_PIN, HIGH);   //the led visualizes the sensors output pin state
       
           if(lockLow){  
             //makes sure we wait for a transition to LOW before any further output is made:
@@ -312,8 +263,8 @@ void loop() {
           takeLowTime = true;
         }
 
-        if(digitalRead(pirPin) == LOW){       
-          digitalWrite(ledPin, LOW);  //the led visualizes the sensors output pin state
+        if(digitalRead(PIR_A_SIGNAL_PIN) == LOW){       
+          digitalWrite(PIR_A_LED_PIN, LOW);  //the led visualizes the sensors output pin state
       
           if(takeLowTime){
             lowIn = millis();          //save the time of the transition from high to LOW
@@ -347,7 +298,7 @@ void loop() {
   
  if (musicPlayer.stopped()) {
    lcd.setCursor(0, 1);
-  BlinkM_fadeToRandomRGB( blinkm_addr_a, '100','100','100');
+  //BlinkM_fadeToRandomRGB( blinkm_addr_a, '100','100','100');
   DateTime now = RTC.now();
   
    uint16_t x = tsl.getLuminosity(TSL2561_VISIBLE);     
@@ -453,4 +404,33 @@ void initialize_real_time_clock() {
     RTC.adjust(DateTime(__DATE__, __TIME__));
   }  
 }
+
+void initialize_pin_modes() {
+  pinMode(MICRO_SD_CHIP_SELECT, OUTPUT);     
+  pinMode(PIEZO_SOUNDER_PIN,OUTPUT);
+  pinMode(BUTTON_PIN_1, INPUT);
+  pinMode(BUTTON_PIN_2, INPUT);
+  pinMode(BUTTON_PIN_3, INPUT);
+  pinMode(BUTTON_PIN_4, INPUT);
+  pinMode(BUTTON_PIN_5, INPUT);
+  pinMode(PIR_A_SIGNAL_PIN, INPUT);
+  pinMode(PIR_B_SIGNAL_PIN, INPUT);
+  pinMode(PIR_A_LED_PIN, OUTPUT);
+  pinMode(PIR_B_LED_PIN, OUTPUT);
+  pinMode(SS, OUTPUT);
+}
+
+void initialize_and_calibrate_PIR_sensor_array() {
+  
+  //give the sensor some time to calibrate
+  Serial.print("calibrating sensor ");
+    for(int i = 0; i < calibrationTime; i++){
+      Serial.print(".");
+      delay(1000);
+      }
+    Serial.println(" done");
+    Serial.println("SENSOR ACTIVE");
+    delay(50);
+}
+
 

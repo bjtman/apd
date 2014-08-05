@@ -1,5 +1,5 @@
 // APD version 1.1.09
-// 8/3/14
+// 8/4/14
 // Brian Tice
 
 #include <Arduino.h>
@@ -17,7 +17,9 @@
 #include <avr/pgmspace.h>    // for progmem stuff
 #include <RTClib.h>          // Need this for ChronoDot real time clock library functions 
 #include <RTC_DS3231.h>      // Need this for the particular Chip used on the ChronoDot 2.0
-#include <TSL2561.h>         // Need this for Luminosity sensor support
+#include <SFE_TSL2561.h>     // Need this for Luminosity sensor support. changed for more extensive library
+                             // from Mike Grusin. The Adafruit library didn't have functions
+                             // to set Interrupts and HI/LOW light thresholds for Interrupt. This is better.
 #include <Adafruit_VS1053.h> // Need this for music player library functions
 #include "LiquidCrystal.h"   // Need this for I2C backback and LCD display
                              // Note this is latest version of this library from 
@@ -58,10 +60,11 @@
 
 #define STATE_IDLE_POLLING    2
 #define STATE_BUTTON_ISR      3
+#define STATE_NIGHT_TIME_ISR  4
 
 // Class declarations for system
 
-TSL2561 tsl(TSL2561_ADDR_FLOAT);    // Need this for Luminosity sensor. Default I2C address is: 0x09 = TSL2561_ADDR_FLOAT
+SFE_TSL2561 light;                  // Need this for Luminosity sensor. Default I2C address is: 0x09 = TSL2561_ADDR_FLOAT
                                     // This can be changed by soldering jumpers on the sensor
                                     // The address will be different depending on whether you let
                                     // the ADDR pin float (addr 0x39), or tie it to ground or vcc. In those cases
@@ -95,7 +98,8 @@ byte blinkm_addr_b = 0x0C;          // I2C Address of one of the LED's. LED B
 byte blinkm_addr_c = 0x0D;          // I2C Address of one of the LED's. LED C
 
 volatile int state = 0;
-
+boolean gain;     // Gain setting, 0 = X1, 1 = X16;
+unsigned int ms;  // Integration ("shutter") time in milliseconds
 
 
 void setup() {
@@ -127,6 +131,13 @@ void loop() {
     }
     case STATE_BUTTON_ISR:
     {
+      
+      //button_one_state = digitalRead(
+     // button_one_state = digitalRead(
+     // button_one_state = digitalRead(
+     // button_one_state = digitalRead(
+     // button_one_state = digitalRead(
+      
       Serial.println("Whoa dude a button was pressed!");
       
       // Decode buttons
@@ -135,6 +146,19 @@ void loop() {
       
       state = STATE_IDLE_POLLING;
       break;
+    }
+    
+    case STATE_NIGHT_TIME_ISR:
+    {
+       Serial.println("Oh shit it night time its the right time baby");
+  
+       light.clearInterrupt();
+       light.setInterruptControl(0, 0);
+       detachInterrupt(0);                // Turn off interrupt for now, it's night time.
+                                          // Turn back on when day is upon us in the African Wild.
+                                          // Tibetan Plains
+       state = STATE_IDLE_POLLING;
+       break;
     }
   }
   
@@ -263,7 +287,48 @@ int buttonState = 0;         // variable for reading the pushbutton status
   //BlinkM_fadeToRandomRGB( blinkm_addr_a, '100','100','100');
   DateTime now = RTC.now();
   
-   uint16_t x = tsl.getLuminosity(TSL2561_VISIBLE);     
+   // There are two light sensors on the device, one for visible light
+  // and one for infrared. Both sensors are needed for lux calculations.
+  
+  // Retrieve the data from the device:
+
+  unsigned int data0, data1;
+  
+  if (light.getData(data0,data1))
+  {
+    // getData() returned true, communication was successful
+    
+    Serial.print("data0: ");
+    Serial.print(data0);
+    Serial.print(" data1: ");
+    Serial.print(data1);
+  
+    // To calculate lux, pass all your settings and readings
+    // to the getLux() function.
+    
+    // The getLux() function will return 1 if the calculation
+    // was successful, or 0 if one or both of the sensors was
+    // saturated (too much light). If this happens, you can
+    // reduce the integration time and/or gain.
+    // For more information see the hookup guide at: https://learn.sparkfun.com/tutorials/getting-started-with-the-tsl2561-luminosity-sensor
+  
+    double lux;    // Resulting lux value
+    boolean good;  // True if neither sensor is saturated
+   
+    // Perform lux calculation:
+   
+    good = light.getLux(gain,ms,data0,data1,lux);
+    
+    // Print out the results:
+	
+    Serial.print(" lux: ");
+    Serial.print(lux);
+    if (good) Serial.println(" (good)"); else Serial.println(" (BAD)");
+  }
+  else
+  {
+    
+  }    
  
     //uint16_t x = tsl.getLuminosity(TSL2561_FULLSPECTRUM);
     //uint16_t x = tsl.getLuminosity(TSL2561_INFRARED);
@@ -297,9 +362,9 @@ int buttonState = 0;         // variable for reading the pushbutton status
     lcd.print("                   ");
     lcd.setCursor(0,3);
     lcd.print("Luminosity: ");
-    lcd.print(x,DEC);
-    Serial.println(x,DEC);
-    dataFile.println(x,DEC);
+    lcd.print(data0,DEC);
+    Serial.println(data0,DEC);
+    dataFile.println(data0,DEC);
    
     // The following line will 'save' the file to the SD card after every
     // line of data - this will use more power and slow down how much data
@@ -402,20 +467,87 @@ void initialize_and_calibrate_PIR_sensor_array() {
 void initialize_lux_sensor() {
   
   // Initialize lux sensor
-  if (tsl.begin()) {
-    Serial.println("Found sensor");
-  } else {
-    Serial.println("No sensor?");
-    while (1);
+  // You can pass nothing to light.begin() for the default I2C address (0x39),
+  // or use one of the following presets if you have changed
+  // the ADDR jumper on the board:
+  
+  // TSL2561_ADDR_0 address with '0' shorted on board (0x29)
+  // TSL2561_ADDR   default address (0x39)
+  // TSL2561_ADDR_1 address with '1' shorted on board (0x49)
+
+  // For more information see the hookup guide at: https://learn.sparkfun.com/tutorials/getting-started-with-the-tsl2561-luminosity-sensor
+
+  light.begin();
+
+  // Get factory ID from sensor:
+  // (Just for fun, you don't need to do this to operate the sensor)
+
+  unsigned char ID;
+  
+  if (light.getID(ID))
+  {
+    Serial.print("Got factory ID: 0X");
+    Serial.print(ID,HEX);
+    Serial.println(", should be 0X5X");
   }
-  // You can change the gain on the fly, to adapt to brighter/dimmer light situations
-  //tsl.setGain(TSL2561_GAIN_0X);         // set no gain (for bright situtations)
-  tsl.setGain(TSL2561_GAIN_16X);      // set 16x gain (for dim situations)
-  // Changing the integration time gives you a longer time over which to sense light
-  // longer timelines are slower, but are good in very low light situtations!
-  tsl.setTiming(TSL2561_INTEGRATIONTIME_13MS);  // shortest integration time (bright light)
-  //tsl.setTiming(TSL2561_INTEGRATIONTIME_101MS);  // medium integration time (medium light)
-  //tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS);  // longest integration time (dim light)
+  // Most library commands will return true if communications was successful,
+  // and false if there was a problem. You can ignore this returned value,
+  // or check whether a command worked correctly and retrieve an error code:
+  else
+  {
+   
+  }
+
+  // The light sensor has a default integration time of 402ms,
+  // and a default gain of low (1X).
+  
+  // If you would like to change either of these, you can
+  // do so using the setTiming() command.
+  
+  // If gain = false (0), device is set to low gain (1X)
+  // If gain = high (1), device is set to high gain (16X)
+
+  gain = 0;
+
+  // If time = 0, integration will be 13.7ms
+  // If time = 1, integration will be 101ms
+  // If time = 2, integration will be 402ms
+  // If time = 3, use manual start / stop to perform your own integration
+
+  unsigned char time = 2;
+
+  // setTiming() will set the third parameter (ms) to the
+  // requested integration time in ms (this will be useful later):
+  
+  Serial.println("Set timing...");
+  light.setTiming(gain,time,ms);
+
+  // To start taking measurements, power up the sensor:
+  
+  Serial.println("Powerup...");
+  light.setPowerUp();
+  
+  // The sensor will now gather light during the integration time.
+  // After the specified time, you can retrieve the result from the sensor.
+  // Once a measurement occurs, another integration period will start.
+  
+  light.setInterruptControl(1, 15);    // Enable Interrupt Pin Output
+			               // Sets up interrupt operations
+			               // If control = 0, interrupt output disabled
+			               // If control = 1, use level interrupt, see setInterruptThreshold()
+			               // If persist = 0, every integration cycle generates an interrupt
+			               // If persist = 1, any value outside of threshold generates an interrupt
+			               // If persist = 2 to 15, value must be outside of threshold for 2 to 15 integration cycles
+			               // Returns true (1) if successful, false (0) if there was an I2C error
+			               // (Also see getError() below)
+
+  light.setInterruptThreshold(300, 1500);  // set LOW and HIGH channel 0 threshholds for Interrupt trigger
+			                   // Set interrupt thresholds (channel 0 only)
+			                   // low, high: 16-bit threshold values
+			                   // Returns true (1) if successful, false (0) if there was an I2C error
+			                   // (Also see getError() below)
+
+  attachInterrupt(0,DayNightISR,RISING);  // Attach the interrupt to pin 2.
 }
 
 void initialize_lcd_backpack_and_screen() {
@@ -477,4 +609,10 @@ void initialize_vs1053_music_player() {
    
    state = STATE_BUTTON_ISR;
  }
+ 
+ void DayNightISR() {
+ 
+  state = STATE_NIGHT_TIME_ISR;
+  
+}
   

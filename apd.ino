@@ -1,4 +1,4 @@
-// APD version 1.1.11
+// APD version 1.1.12
 // 8/7/14
 // Brian Tice
 
@@ -70,15 +70,19 @@
 #define PIR_CALIBRATION_TIME 30
 
 
-#define STATE_IDLE_POLLING    2
-#define STATE_BUTTON_ISR      3
-#define STATE_NIGHT_TIME_ISR  4
+#define STATE_DAYTIME_IDLE    2
+#define STATE_MENU_ISR      3
+#define STATE_MENU  4
+#define STATE_PREPARE_FOR_DAYTIME_IDLE 5
+#define STATE_DAY_NIGHT_ISR 6
+#define STATE_ARMED_STATE 7
+
 
 
 #define MAX9744_I2CADDR 0x4B // 0x4B is the default i2c address for MAX 9744 Class D Amp
-#define STARTUP_VOLUME 58 
+#define STARTUP_VOLUME 53 
 
-int8_t thevol = 58;          // We'll track the volume level in this variable.
+int8_t thevol = 53;          // We'll track the volume level in this variable.
                              // Range: 0 - 63. 0 Low, 63 Loudest
           
 // Class declarations for system
@@ -114,14 +118,37 @@ File dataFile;                      // Need this to declare a File instance for 
                                     
 MenuBackend menu = MenuBackend(menuUsed,menuChanged);  //Menu variables
                                     
-    MenuItem menu1Item1 = MenuItem("Item1");           //initialize menuitems
-      MenuItem menuItem1SubItem1 = MenuItem("Item1SubItem1");
-      MenuItem menuItem1SubItem2 = MenuItem("Item1SubItem2");
-    MenuItem menu1Item2 = MenuItem("Item2");
-      MenuItem menuItem2SubItem1 = MenuItem("Item2SubItem1");
-      MenuItem menuItem2SubItem2 = MenuItem("Item2SubItem2");
-      MenuItem menuItem3SubItem3 = MenuItem("Item2SubItem3");
-    MenuItem menu1Item3 = MenuItem("Item3");
+                                       
+    MenuItem menu1Item1 = MenuItem("Select Alarm Modes");           //initialize menuitems
+      MenuItem menuItem1SubItem1 = MenuItem("Audio Enable");
+      MenuItem menuItem1SubItem2 = MenuItem("Audio Disable");
+      MenuItem menuItem1SubItem3 = MenuItem("Piezo Enable");
+      MenuItem menuItem1SubItem4 = MenuItem("Piezo Disable");
+      MenuItem menuItem1SubItem5 = MenuItem("Small LED Enable");
+      MenuItem menuItem1SubItem6 = MenuItem("Small LED Disable");
+      MenuItem menuItem1SubItem7 = MenuItem("Big LED Enable");
+      MenuItem menuItem1SubItem8 = MenuItem("Big LED Disable");
+    MenuItem menu1Item2 = MenuItem("Select Alarm Pattern");
+      MenuItem menuItem2SubItem1 = MenuItem("Small LED Green");
+      MenuItem menuItem2SubItem2 = MenuItem("Small LED Red");
+      MenuItem menuItem2SubItem3 = MenuItem("Small LED Blue");
+      MenuItem menuItem2SubItem4 = MenuItem("Small LED Random");
+      MenuItem menuItem2SubItem5 = MenuItem("Large LED Green");
+      MenuItem menuItem2SubItem6 = MenuItem("Large LED Red");
+      MenuItem menuItem2SubItem7 = MenuItem("Large LED Blue");
+      MenuItem menuItem2SubItem8 = MenuItem("Large LED Random");
+      MenuItem menuItem2SubItem9 = MenuItem("Piezo Short");
+      MenuItem menuItem2SubItem10 = MenuItem("Piezo Long");
+      MenuItem menuItem2SubItem11 = MenuItem("Piezo Random");
+      MenuItem menuItem2SubItem12 = MenuItem("Audio Track 1");
+      MenuItem menuItem2SubItem13 = MenuItem("Audio Track 2");
+      MenuItem menuItem2SubItem14 = MenuItem("Audio Random");
+    MenuItem menu1Item3 = MenuItem("System Changes");
+      MenuItem menuItem3SubItem1 = MenuItem("Clock 12hr format");
+      MenuItem menuItem3SubItem2 = MenuItem("Clock 24hr format");
+      MenuItem menuItem3SubItem3 = MenuItem("Inc. Light Thresh +5");
+      MenuItem menuItem3SubItem4 = MenuItem("Dec. Light Thresh -5");
+      MenuItem menuItem3SubItem5 = MenuItem("Reset All");
 
 const boolean BLINKM_ARDUINO_POWERED = true;  // For now this is true. This will change when moving for bench
                                               // testing to field testing
@@ -170,7 +197,7 @@ void setup() {
   initialize_stereo();
   Serial.begin(19200);
   attachInterrupt(4,pin_19_ISR,CHANGE);
-  state = STATE_IDLE_POLLING;
+  state = STATE_DAYTIME_IDLE;
   
   
 }
@@ -180,12 +207,12 @@ void loop() {
 
   switch(state) {
     
-    case STATE_IDLE_POLLING:
+    case STATE_DAYTIME_IDLE:
     {
       Serial.println("Just chilling out");
       break;
     }
-    case STATE_BUTTON_ISR:
+    case STATE_MENU_ISR:
     {
       
       
@@ -197,12 +224,12 @@ void loop() {
         readButtons();  //I splitted button reading and navigation in two procedures because 
         navigateMenus();  //in some situations I want to use the button for other purpose (eg. to change some settings)
      
-      state = STATE_BUTTON_ISR;
+      state = STATE_MENU_ISR;
       
       break;
     }
     
-    case STATE_NIGHT_TIME_ISR:
+    case STATE_DAY_NIGHT_ISR:
     {
        Serial.println("Oh shit it night time its the right time baby");
   
@@ -211,7 +238,7 @@ void loop() {
        detachInterrupt(0);                // Turn off interrupt for now, it's night time.
                                           // Turn back on when day is upon us in the African Wild.
                                           // Tibetan Plains
-       state = STATE_IDLE_POLLING;
+       state = STATE_DAYTIME_IDLE;
        break;
     }
   }
@@ -663,11 +690,12 @@ void initialize_vs1053_music_player() {
      //configure menu
   menu.getRoot().add(menu1Item1);
   menu1Item1.addRight(menu1Item2).addRight(menu1Item3);
-  menu1Item1.add(menuItem1SubItem1).addRight(menuItem1SubItem2);
-  menu1Item2.add(menuItem2SubItem1).addRight(menuItem2SubItem2).addRight(menuItem3SubItem3);
+  menu1Item1.add(menuItem1SubItem1).addRight(menuItem1SubItem2).addRight(menuItem1SubItem3).addRight(menuItem1SubItem4).addRight(menuItem1SubItem5).addRight(menuItem1SubItem6).addRight(menuItem1SubItem7).addRight(menuItem1SubItem8);
+  menu1Item2.add(menuItem2SubItem1).addRight(menuItem2SubItem2).addRight(menuItem2SubItem3).addRight(menuItem2SubItem4).addRight(menuItem2SubItem5).addRight(menuItem2SubItem6).addRight(menuItem2SubItem7).addRight(menuItem2SubItem8).addRight(menuItem2SubItem9).addRight(menuItem2SubItem10).addRight(menuItem2SubItem11).addRight(menuItem2SubItem12).addRight(menuItem2SubItem13).addRight(menuItem2SubItem14);
+  menu1Item3.add(menuItem3SubItem1).addRight(menuItem3SubItem2).addRight(menuItem3SubItem3).addRight(menuItem3SubItem4).addRight(menuItem3SubItem5);
   menu.toRoot();
   lcd.setCursor(0,0);  
-  lcd.print("AntiPredator Device");
+  lcd.print("APD Version 1.0     ");
  }
  
  void initialize_stereo() {
@@ -685,26 +713,72 @@ void initialize_vs1053_music_player() {
   
   MenuItem newMenuItem=changed.to; //get the destination menu
   
-  lcd.setCursor(0,1); //set the start position for lcd printing to the second row
+  lcd.setCursor(0,2); //set the start position for lcd printing to the second row
   
-  if(newMenuItem.getName()==menu.getRoot()){
-      lcd.print("Main Menu       ");
-  }else if(newMenuItem.getName()=="Item1"){
-      lcd.print("Item1           ");
-  }else if(newMenuItem.getName()=="Item1SubItem1"){
-      lcd.print("Item1SubItem1");
-  }else if(newMenuItem.getName()=="Item1SubItem2"){
-      lcd.print("Item1SubItem2   ");
-  }else if(newMenuItem.getName()=="Item2"){
-      lcd.print("Item2           ");
-  }else if(newMenuItem.getName()=="Item2SubItem1"){
-      lcd.print("Item2SubItem1   ");
-  }else if(newMenuItem.getName()=="Item2SubItem2"){
-      lcd.print("Item2SubItem2   ");
-  }else if(newMenuItem.getName()=="Item2SubItem3"){
-      lcd.print("Item2SubItem3   ");
-  }else if(newMenuItem.getName()=="Item3"){
-      lcd.print("Item3           ");
+   if(newMenuItem.getName()==menu.getRoot()){
+      lcd.print("Main Menu           ");
+  }else if(newMenuItem.getName()=="Select Alarm Modes"){
+      lcd.print("Select Alarm Modes  ");
+  }else if(newMenuItem.getName()=="Audio Enable"){
+      lcd.print("Audio Enable        ");
+  }else if(newMenuItem.getName()=="Audio Disable"){
+      lcd.print("Audio Disable       ");
+  }else if(newMenuItem.getName()=="Piezo Enable"){
+      lcd.print("Piezo Enable        ");
+  }else if(newMenuItem.getName()=="Piezo Disable"){
+      lcd.print("Piezo Disable       ");
+  }else if(newMenuItem.getName()=="Small LED Enable"){
+      lcd.print("Small LED Enable    ");
+  }else if(newMenuItem.getName()=="Small LED Disable"){
+      lcd.print("Small LED Disable   ");
+  }else if(newMenuItem.getName()=="Big LED Enable"){
+      lcd.print("Big LED Enable      ");
+  }else if(newMenuItem.getName()=="Big LED Disable"){
+      lcd.print("Big LED Disable     ");
+  }else if(newMenuItem.getName()=="Select Alarm Pattern"){
+      lcd.print("Select Alarm Pattern");
+  }else if(newMenuItem.getName()=="Small LED Green"){
+      lcd.print("Small LED Green     ");
+  }else if(newMenuItem.getName()=="Small LED Red"){
+      lcd.print("Small LED Red       ");
+  }else if(newMenuItem.getName()=="Small LED Blue"){
+      lcd.print("Small LED Blue      ");
+  }else if(newMenuItem.getName()=="Small LED Random"){
+      lcd.print("Small LED Random    ");
+  }else if(newMenuItem.getName()=="Large LED Green"){
+      lcd.print("Large LED Green     ");
+  }else if(newMenuItem.getName()=="Large LED Red"){
+      lcd.print("Large LED Red       ");
+  }else if(newMenuItem.getName()=="Large LED Blue"){
+      lcd.print("Large LED Blue      ");
+  }else if(newMenuItem.getName()=="Large LED Random"){
+      lcd.print("Large LED Random    ");
+  }else if(newMenuItem.getName()=="Piezo Short"){
+      lcd.print("Piezo Short         ");
+  }else if(newMenuItem.getName()=="Piezo Long"){
+      lcd.print("Piezo Long          ");
+  }else if(newMenuItem.getName()=="Piezo Random"){
+      lcd.print("Piezo Random        ");    
+  }else if(newMenuItem.getName()=="Audio Track 1"){
+      lcd.print("Audio Track 1       ");
+  }else if(newMenuItem.getName()=="Audio Track 2"){
+      lcd.print("Audio Track 2       ");
+  }else if(newMenuItem.getName()=="Audio Random"){
+      lcd.print("Audio Random        ");
+  }else if(newMenuItem.getName()=="System Changes"){
+      lcd.print("System Changes      ");
+  }else if(newMenuItem.getName()=="Clock 12hr format"){
+      lcd.print("Clock 12hr format   ");
+  }else if(newMenuItem.getName()=="Clock 24hr format"){
+      lcd.print("Clock 24hr format   ");
+  }else if(newMenuItem.getName()=="Inc. Light Thresh +5"){
+      lcd.print("Inc. Light Thresh +5");
+  }else if(newMenuItem.getName()=="Dec. Light Thresh -5"){
+      lcd.print("Dec. Light Thresh -5");
+  }else if(newMenuItem.getName()=="Big LED Enable"){
+      lcd.print("Big LED Enable      ");
+  }else if(newMenuItem.getName()=="Reset All"){
+      lcd.print("Reset All           ");
   }
 }
 
@@ -894,12 +968,12 @@ boolean setvolume(int8_t v) {
  
  void pin_19_ISR() {
    
-   state = STATE_BUTTON_ISR;
+   state = STATE_MENU_ISR;
  }
  
  void DayNightISR() {
  
-  state = STATE_NIGHT_TIME_ISR;
+  state = STATE_DAY_NIGHT_ISR;
   
 }
   

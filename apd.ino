@@ -1,5 +1,5 @@
-// APD version 1.1.10
-// 8/6/14
+// APD version 1.1.11
+// 8/7/14
 // Brian Tice
 
 #include <Arduino.h>
@@ -74,6 +74,13 @@
 #define STATE_BUTTON_ISR      3
 #define STATE_NIGHT_TIME_ISR  4
 
+
+#define MAX9744_I2CADDR 0x4B // 0x4B is the default i2c address for MAX 9744 Class D Amp
+#define STARTUP_VOLUME 58 
+
+int8_t thevol = 58;          // We'll track the volume level in this variable.
+                             // Range: 0 - 63. 0 Low, 63 Loudest
+          
 // Class declarations for system
 
 SFE_TSL2561 light;                  // Need this for Luminosity sensor. Default I2C address is: 0x09 = TSL2561_ADDR_FLOAT
@@ -160,6 +167,7 @@ void setup() {
   initialize_datalogging_sd_card();
   initialize_vs1053_music_player();
   initialize_LCD_menu_system();
+  initialize_stereo();
   Serial.begin(19200);
   attachInterrupt(4,pin_19_ISR,CHANGE);
   state = STATE_IDLE_POLLING;
@@ -662,7 +670,14 @@ void initialize_vs1053_music_player() {
   lcd.print("AntiPredator Device");
  }
  
- 
+ void initialize_stereo() {
+   
+   if (! setvolume(thevol)) {
+    Serial.println("Failed to set volume, MAX9744 not found!");
+    
+  }
+   
+ }
  
  
  
@@ -856,6 +871,25 @@ void navigateMenus() {
   
   lastButtonPushed=0; //reset the lastButtonPushed variable
 } 
+
+
+// Setting the volume is very simple! Just write the 6-bit
+// volume to the i2c bus. That's it!
+boolean setvolume(int8_t v) {
+  // cant be higher than 63 or lower than 0
+  if (v > 63) v = 63;
+  if (v < 0) v = 0;
+  
+  Serial.print("Setting volume to ");
+  Serial.println(v);
+  Wire.beginTransmission(MAX9744_I2CADDR);
+  Wire.write(v);
+  if (Wire.endTransmission() == 0) 
+    return true;
+  else
+    return false;
+}
+
  
  
  void pin_19_ISR() {

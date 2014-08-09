@@ -1,6 +1,8 @@
-// APD version 1.1.12
-// 8/7/14
+// APD version 1.1.13
+// 8/9/14
 // Brian Tice
+// 
+
 
 #include <Arduino.h>
 #include <Wire.h>            // Need this for I2C support
@@ -36,13 +38,13 @@
 	                     //  }
 
  
-                             // These are the pins used for the breakout example
-#define BREAKOUT_RESET   9   // VS1053 reset pin (output)
-#define BREAKOUT_CS     10   // VS1053 chip select pin (output)
-#define BREAKOUT_DCS     8   // VS1053 Data/command select pin (output)
-                             // These are the pins used for the music maker shield
-#define SHIELD_CS        7   // VS1053 chip select pin (output)
-#define SHIELD_DCS       6   // VS1053 Data/command select pin (output)
+                                   // These are the pins used for the breakout example
+#define BREAKOUT_RESET       9     // VS1053 reset pin (output)
+#define BREAKOUT_CS         10     // VS1053 chip select pin (output)
+#define BREAKOUT_DCS         8     // VS1053 Data/command select pin (output)
+                                   // These are the pins used for the music maker shield
+#define SHIELD_CS            7     // VS1053 chip select pin (output)
+#define SHIELD_DCS           6     // VS1053 Data/command select pin (output)
 
 
 #define PIEZO_SOUNDER_PIN    22    // Create constant for Piezo Sounder HiLo alarm
@@ -55,32 +57,36 @@
 #define DREQ 3       // VS1053 Data request, ideally an Interrupt pin
 
 // Create Constants for Keypad items
-#define BUTTON_PIN_1     30
-#define BUTTON_PIN_2     31
-#define BUTTON_PIN_3     32
-#define BUTTON_PIN_4     33
-#define BUTTON_PIN_5     34
+#define BUTTON_PIN_1         30
+#define BUTTON_PIN_2         31
+#define BUTTON_PIN_3         32
+#define BUTTON_PIN_4         33
+#define BUTTON_PIN_5         34
 
 
 
-#define PIR_A_LED_PIN 40
-#define PIR_B_LED_PIN 41
-#define PIR_A_SIGNAL_PIN 2
-#define PIR_B_SIGNAL_PIN 18
-#define PIR_CALIBRATION_TIME 30
+#define PIR_A_LED_PIN         40
+#define PIR_B_LED_PIN         41
+#define DAY_NIGHT_ISR_PIN       2
+#define PIR_B_SIGNAL_PIN      18
+#define PIR_CALIBRATION_TIME   5
 
 
-#define STATE_DAYTIME_IDLE    2
-#define STATE_MENU_ISR      3
-#define STATE_MENU  4
-#define STATE_PREPARE_FOR_DAYTIME_IDLE 5
-#define STATE_DAY_NIGHT_ISR 6
-#define STATE_ARMED_STATE 7
+#define STATE_DAYTIME_IDLE              2
+#define STATE_MENU_ISR                  3
+#define STATE_MENU                      4
+#define STATE_PREPARE_FOR_DAYTIME_IDLE  5
+#define STATE_DAY_NIGHT_ISR             6
+#define STATE_ARMED_STATE               7
 
 
 
 #define MAX9744_I2CADDR 0x4B // 0x4B is the default i2c address for MAX 9744 Class D Amp
 #define STARTUP_VOLUME 53 
+
+#define LOW_LIGHT_THRESHOLD 300 // This is the threshold that determines the transition from daytime idle to armed state. 
+                                // Once in armed state, 
+
 
 int8_t thevol = 53;          // We'll track the volume level in this variable.
                              // Range: 0 - 63. 0 Low, 63 Loudest
@@ -109,46 +115,47 @@ Adafruit_VS1053_FilePlayer musicPlayer =     // Need this to create instance of 
 
                                              // create breakout-example object!
   
-  Adafruit_VS1053_FilePlayer(BREAKOUT_RESET, BREAKOUT_CS, BREAKOUT_DCS, DREQ, CARDCS);
+Adafruit_VS1053_FilePlayer(BREAKOUT_RESET, BREAKOUT_CS, BREAKOUT_DCS, DREQ, CARDCS);
                                              // create shield-example object!
                                              //Adafruit_VS1053_FilePlayer(SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);                                   
                                   
 File dataFile;                      // Need this to declare a File instance for use in datalogging.
 
+
                                     
 MenuBackend menu = MenuBackend(menuUsed,menuChanged);  //Menu variables
                                     
                                        
-    MenuItem menu1Item1 = MenuItem("Select Alarm Modes");           //initialize menuitems
-      MenuItem menuItem1SubItem1 = MenuItem("Audio Enable");
-      MenuItem menuItem1SubItem2 = MenuItem("Audio Disable");
-      MenuItem menuItem1SubItem3 = MenuItem("Piezo Enable");
-      MenuItem menuItem1SubItem4 = MenuItem("Piezo Disable");
-      MenuItem menuItem1SubItem5 = MenuItem("Small LED Enable");
-      MenuItem menuItem1SubItem6 = MenuItem("Small LED Disable");
-      MenuItem menuItem1SubItem7 = MenuItem("Big LED Enable");
-      MenuItem menuItem1SubItem8 = MenuItem("Big LED Disable");
-    MenuItem menu1Item2 = MenuItem("Select Alarm Pattern");
-      MenuItem menuItem2SubItem1 = MenuItem("Small LED Green");
-      MenuItem menuItem2SubItem2 = MenuItem("Small LED Red");
-      MenuItem menuItem2SubItem3 = MenuItem("Small LED Blue");
-      MenuItem menuItem2SubItem4 = MenuItem("Small LED Random");
-      MenuItem menuItem2SubItem5 = MenuItem("Large LED Green");
-      MenuItem menuItem2SubItem6 = MenuItem("Large LED Red");
-      MenuItem menuItem2SubItem7 = MenuItem("Large LED Blue");
-      MenuItem menuItem2SubItem8 = MenuItem("Large LED Random");
-      MenuItem menuItem2SubItem9 = MenuItem("Piezo Short");
-      MenuItem menuItem2SubItem10 = MenuItem("Piezo Long");
-      MenuItem menuItem2SubItem11 = MenuItem("Piezo Random");
-      MenuItem menuItem2SubItem12 = MenuItem("Audio Track 1");
-      MenuItem menuItem2SubItem13 = MenuItem("Audio Track 2");
-      MenuItem menuItem2SubItem14 = MenuItem("Audio Random");
-    MenuItem menu1Item3 = MenuItem("System Changes");
-      MenuItem menuItem3SubItem1 = MenuItem("Clock 12hr format");
-      MenuItem menuItem3SubItem2 = MenuItem("Clock 24hr format");
-      MenuItem menuItem3SubItem3 = MenuItem("Inc. Light Thresh +5");
-      MenuItem menuItem3SubItem4 = MenuItem("Dec. Light Thresh -5");
-      MenuItem menuItem3SubItem5 = MenuItem("Reset All");
+MenuItem menu1Item1 = MenuItem("Select Alarm Modes");           //initialize menuitems
+MenuItem menuItem1SubItem1 = MenuItem("Audio Enable");
+MenuItem menuItem1SubItem2 = MenuItem("Audio Disable");
+MenuItem menuItem1SubItem3 = MenuItem("Piezo Enable");
+MenuItem menuItem1SubItem4 = MenuItem("Piezo Disable");
+MenuItem menuItem1SubItem5 = MenuItem("Small LED Enable");
+MenuItem menuItem1SubItem6 = MenuItem("Small LED Disable");
+MenuItem menuItem1SubItem7 = MenuItem("Big LED Enable");
+MenuItem menuItem1SubItem8 = MenuItem("Big LED Disable");
+MenuItem menu1Item2 = MenuItem("Select Alarm Pattern");
+MenuItem menuItem2SubItem1 = MenuItem("Small LED Green");
+MenuItem menuItem2SubItem2 = MenuItem("Small LED Red");
+MenuItem menuItem2SubItem3 = MenuItem("Small LED Blue");
+MenuItem menuItem2SubItem4 = MenuItem("Small LED Random");
+MenuItem menuItem2SubItem5 = MenuItem("Large LED Green");
+MenuItem menuItem2SubItem6 = MenuItem("Large LED Red");
+MenuItem menuItem2SubItem7 = MenuItem("Large LED Blue");
+MenuItem menuItem2SubItem8 = MenuItem("Large LED Random");
+MenuItem menuItem2SubItem9 = MenuItem("Piezo Short");
+MenuItem menuItem2SubItem10 = MenuItem("Piezo Long");
+MenuItem menuItem2SubItem11 = MenuItem("Piezo Random");
+MenuItem menuItem2SubItem12 = MenuItem("Audio Track 1");
+MenuItem menuItem2SubItem13 = MenuItem("Audio Track 2");
+MenuItem menuItem2SubItem14 = MenuItem("Audio Random");
+MenuItem menu1Item3 = MenuItem("System Changes");
+MenuItem menuItem3SubItem1 = MenuItem("Clock 12hr format");
+MenuItem menuItem3SubItem2 = MenuItem("Clock 24hr format");
+MenuItem menuItem3SubItem3 = MenuItem("Inc. Light Thresh +5");
+MenuItem menuItem3SubItem4 = MenuItem("Dec. Light Thresh -5");
+MenuItem menuItem3SubItem5 = MenuItem("Reset All");
 
 const boolean BLINKM_ARDUINO_POWERED = true;  // For now this is true. This will change when moving for bench
                                               // testing to field testing
@@ -156,6 +163,9 @@ const boolean BLINKM_ARDUINO_POWERED = true;  // For now this is true. This will
 byte blinkm_addr_a = 0x09;          // I2C Address of one of the LED's. LED A
 byte blinkm_addr_b = 0x0C;          // I2C Address of one of the LED's. LED B 
 byte blinkm_addr_c = 0x0D;          // I2C Address of one of the LED's. LED C
+
+byte LedArrayAddress[3] = {0x09,0x0C,0x0D};    // Global array that houses LED addresses
+
 
 volatile int state = 0;
 boolean gain;     // Gain setting, 0 = X1, 1 = X16;
@@ -185,18 +195,21 @@ long debounceDelay = 200;    // the debounce time
 
 void setup() {
    
+  
+  Serial.begin(19200);
+  initialize_lcd_backpack_and_screen();
   initialize_real_time_clock();
   initialize_and_test_leds();
   initialize_pin_modes();  
-  initialize_and_calibrate_PIR_sensor_array();
+  //initialize_and_calibrate_PIR_sensor_array();
   initialize_lux_sensor();
-  initialize_lcd_backpack_and_screen();
   initialize_datalogging_sd_card();
   initialize_vs1053_music_player();
   initialize_LCD_menu_system();
   initialize_stereo();
-  Serial.begin(19200);
+  
   attachInterrupt(4,pin_19_ISR,CHANGE);
+  //attachInterrupt(0,DayNightISR,FALLING);
   state = STATE_DAYTIME_IDLE;
   
   
@@ -204,174 +217,42 @@ void setup() {
 
 void loop() {
   
-
+  
   switch(state) {
     
     case STATE_DAYTIME_IDLE:
     {
-      Serial.println("Just chilling out");
-      break;
-    }
-    case STATE_MENU_ISR:
-    {
       
       
+      DateTime now = RTC.now();
+      lcd.setBacklight(LOW);
+      Serial.print("Just chilling out at: ");
+      Serial.print(now.year(), DEC);
+      Serial.print('/');
+      Serial.print(now.month(), DEC);
+      Serial.print('/');
+      Serial.print(now.day(), DEC);
+      Serial.print(' ');
+      Serial.print(now.hour(), DEC);
+      Serial.print(':');
+      Serial.print(now.minute(), DEC);
+      Serial.print(':');
+      Serial.print(now.second(), DEC);
       
-      Serial.println("Whoa dude a button was pressed!");
+      lcd.setCursor(0, 1);
+      lcd.print(now.year(), DEC);
+      lcd.print('/');
+      lcd.print(now.month(), DEC);
+      lcd.print('/');
+      lcd.print(now.day(), DEC);
+      lcd.print(' ');
+      lcd.print(now.hour(), DEC);
+      lcd.print(':');
+      lcd.print(now.minute(), DEC);
+      lcd.print(':');
+      lcd.print(now.second(), DEC);
       
-      // Decode buttons
-      
-        readButtons();  //I splitted button reading and navigation in two procedures because 
-        navigateMenus();  //in some situations I want to use the button for other purpose (eg. to change some settings)
-     
-      state = STATE_MENU_ISR;
-      
-      break;
-    }
-    
-    case STATE_DAY_NIGHT_ISR:
-    {
-       Serial.println("Oh shit it night time its the right time baby");
-  
-       light.clearInterrupt();
-       light.setInterruptControl(0, 0);
-       detachInterrupt(0);                // Turn off interrupt for now, it's night time.
-                                          // Turn back on when day is upon us in the African Wild.
-                                          // Tibetan Plains
-       state = STATE_DAYTIME_IDLE;
-       break;
-    }
-  }
-  
-  //PIR sensor's setup variables
-
-/////////////////////////////
-//VARS
-//the time we give the sensor to calibrate (10-60 secs according to the datasheet)
-int calibrationTime = 10;
-
-//the time when the sensor outputs a low impulse
-long unsigned int lowIn;         
-
-//the amount of milliseconds the sensor has to be low 
-//before we assume all motion has stopped
-long unsigned int pause = 5000;  
-
-boolean lockLow = true;
-boolean takeLowTime;  
-
-// variables will change:
-int buttonState = 0;         // variable for reading the pushbutton status
-
-  // read the state of the pushbutton value:
-  buttonState = digitalRead(BUTTON_PIN_1);   
-  if (buttonState == HIGH) {
-    // turn LED on:
-    digitalWrite(PIR_A_LED_PIN, HIGH);
-  }
-  else {
-    // turn LED off:
-    digitalWrite(PIR_A_LED_PIN, LOW);
-  }
-  
-  
-   if (Serial.available()) {
-    char c = Serial.read();
-    
-    // if we get an 's' on the serial console, stop!
-    if (c == 's') {
-      musicPlayer.stopPlaying();
-      Serial.println("Done playing music");
-      SD.end();
-      delay(1000);
-      SD.begin(MICRO_SD_CHIP_SELECT);
-      dataFile = SD.open("datalog.txt", FILE_WRITE);
-    }
-    
-    if (c == 'g') {
-      
-      // need to switch SD card's here. stop logging. starting playing mp3
-      SD.end();
-      delay(100);
-     
-      SD.begin(CARDCS);    // initialise the SD card
-  
-      Serial.println(F("Playing track 002"));
-      musicPlayer.startPlayingFile("track002.mp3");
-    }
-    
-    // if we get an 'p' on the serial console, pause/unpause!
-    if (c == 'p' || (buttonState == HIGH)) {
-      if (! musicPlayer.paused()) {
-        Serial.println("Paused");
-        musicPlayer.pausePlaying(true);
-        
-        // *** PIR READ ROUTINE
-        // 
-        if(digitalRead(PIR_A_SIGNAL_PIN) == HIGH){
-          digitalWrite(PIR_A_SIGNAL_PIN, HIGH);   //the led visualizes the sensors output pin state
-      
-          if(lockLow){  
-            //makes sure we wait for a transition to LOW before any further output is made:
-            lockLow = false;            
-            Serial.println("---");
-            Serial.print("motion detected at ");
-            Serial.print(millis()/1000);
-            Serial.println(" sec"); 
-            delay(50);
-            // PIEZO SENSOR ACTUATION ROUTINE
-            //
-            digitalWrite(PIEZO_SOUNDER_PIN,HIGH);
-            delay(500);
-            digitalWrite(PIEZO_SOUNDER_PIN,LOW);
-            //
-            // DONE PIEZO
-          }         
-          takeLowTime = true;
-        }
-
-        if(digitalRead(PIR_A_SIGNAL_PIN) == LOW){       
-          digitalWrite(PIR_A_LED_PIN, LOW);  //the led visualizes the sensors output pin state
-      
-          if(takeLowTime){
-            lowIn = millis();          //save the time of the transition from high to LOW
-            takeLowTime = false;       //make sure this is only done at the start of a LOW phase
-          }
-          //if the sensor is low for more than the given pause, 
-          //we assume that no more motion is going to happen
-          if(!lockLow && millis() - lowIn > pause){  
-           //makes sure this block of code is only executed again after 
-           //a new motion sequence has been detected
-           lockLow = true;                        
-           Serial.print("motion ended at ");      //output
-           Serial.print((millis() - pause)/1000);
-           Serial.println(" sec");
-           delay(50);
-          }
-       }
-        
-        
-        
-        
-      } else { 
-        Serial.println("Resumed");
-        musicPlayer.pausePlaying(false);
-      }
-    }
-  }
-  
-  
-  
-  
- if (musicPlayer.stopped()) {
-   lcd.setCursor(0, 1);
-  //BlinkM_fadeToRandomRGB( blinkm_addr_a, '100','100','100');
-  DateTime now = RTC.now();
-  
-   // There are two light sensors on the device, one for visible light
-  // and one for infrared. Both sensors are needed for lux calculations.
-  
-  // Retrieve the data from the device:
+      // Retrieve the data from the device:
 
   unsigned int data0, data1;
   
@@ -379,10 +260,10 @@ int buttonState = 0;         // variable for reading the pushbutton status
   {
     // getData() returned true, communication was successful
     
-    Serial.print("data0: ");
-    Serial.print(data0);
-    Serial.print(" data1: ");
-    Serial.print(data1);
+    Serial.print(" data0: ");
+    Serial.println(data0);
+    //Serial.print(" data1: ");
+    // Serial.print(data1);
   
     // To calculate lux, pass all your settings and readings
     // to the getLux() function.
@@ -400,62 +281,125 @@ int buttonState = 0;         // variable for reading the pushbutton status
    
     good = light.getLux(gain,ms,data0,data1,lux);
     
-    // Print out the results:
-	
-    Serial.print(" lux: ");
-    Serial.print(lux);
-    if (good) Serial.println(" (good)"); else Serial.println(" (BAD)");
-  }
-  else
-  {
+    
+    
+   
     
   }    
+      
+    // Temporary WORKAROUND for non-triggering ISR INTERRUPT pin on TSL2561
+    //
+    if(data0 < LOW_LIGHT_THRESHOLD) {
+      // bail out, make a mock ISR()
+      state = STATE_DAY_NIGHT_ISR;
+      break;
+    }
+    //
+    
+      //state = STATE_DAYTIME_IDLE;
+      break;
+    }
+    
+    case STATE_MENU_ISR:
+    {
+      
+      
+      
+      Serial.println("Detaching Interrupts, then sending to menu state");
+      light.clearInterrupt();
+      //detachInterrupt(0);
+      detachInterrupt(4);
+      wipe_LCD_screen();
+      lcd.setBacklight(HIGH);
+      lcd.setCursor(0,0);
+      lcd.print("   .:Menu System:.  ");
+      state = STATE_MENU;
+      
+      break;
+    }
+    
+    
+    case STATE_MENU:
+    {
+      
+         
+      // Decode buttons
+      
+        readButtons();  //I split button reading and navigation in two procedures because 
+        navigateMenus();  //in some situations I want to use the button for other purpose (eg. to change some settings)
+      
+      break;  
+    }
+    
+    case STATE_PREPARE_FOR_DAYTIME_IDLE:
+    {
+      
+      Serial.println("Preparing for Daytime Idle mode...");
+     // attachInterrupt(0,DayNightISR,FALLING);  // Attach the interrupt to pin 2.
+      attachInterrupt(4,pin_19_ISR,CHANGE);
+      state = STATE_DAYTIME_IDLE;
+      break;
+      
+      
+      
+    }
+    
+    case STATE_DAY_NIGHT_ISR:
+    {
+       Serial.println("State Day/Night ISR, transitioning to armed state. clearning and turing off interrupt 0");
+       
+       //light.clearInterrupt();
+       //light.setInterruptControl(0, 0);
+       //detachInterrupt(0);                // Turn off interrupt for now, it's night time.
+                                          // Turn back on when day is upon us in the African Wild.
+                                          // Tibetan Plains
+                                          
+       
+       
+       state = STATE_ARMED_STATE;
+       break;
+    }
+    
+    case STATE_ARMED_STATE:
+    {
+      
+      // Use timer so that the button ISR()'s come through the pipe
+      // need to figure this one out. or why are interrupts working??
+      attachInterrupt(4,pin_19_ISR,CHANGE);
+      
+      Serial.println("Armed, can accept button ISR's"); 
+      
+      unsigned int data0, data1;
+    
+      long randomLEDProgram = random(0,19);
+     
+      int ledSelect = random(0,3);
  
-    //uint16_t x = tsl.getLuminosity(TSL2561_FULLSPECTRUM);
-    //uint16_t x = tsl.getLuminosity(TSL2561_INFRARED);
-   
-    lcd.print(now.year(), DEC);
-    lcd.print('/');
-    lcd.print(now.month(), DEC);
-    lcd.print('/');
-    lcd.print(now.day(), DEC);
-    lcd.print(' ');
-    lcd.print(now.hour(), DEC);
-    lcd.print(':');
-    lcd.print(now.minute(), DEC);
-    lcd.print(':');
-    lcd.print(now.second(), DEC);
-    
-    dataFile.print(now.year(), DEC);
-    dataFile.print('/');
-    dataFile.print(now.month(), DEC);
-    dataFile.print('/');
-    dataFile.print(now.day(), DEC);
-    dataFile.print(' ');
-    dataFile.print(now.hour(), DEC);
-    dataFile.print(':');
-    dataFile.print(now.minute(), DEC);
-    dataFile.print(':');
-    dataFile.print(now.second(), DEC);
-    
-    
-    lcd.setCursor(0,3);
-    lcd.print("                   ");
-    lcd.setCursor(0,3);
-    lcd.print("Luminosity: ");
-    lcd.print(data0,DEC);
-    Serial.println(data0,DEC);
-    dataFile.println(data0,DEC);
-   
-    // The following line will 'save' the file to the SD card after every
-    // line of data - this will use more power and slow down how much data
-    // you can read but it's safer! 
-    // If you want to speed up the system, remove the call to flush() and it
-    // will save the file only every 512 bytes - every time a sector on the 
-    // SD card is filled with data.
-    dataFile.flush();
-    delay(500);
- }
+      unsigned long delayBlinkTime = random(1000,10000);
+     
+      
+      
+      BlinkM_playScript( LedArrayAddress[ledSelect], randomLEDProgram, 0x00,0x00);
+      //delay(delayBlinkTime);
+      BlinkM_stopScript(LedArrayAddress[ledSelect]);
+      BlinkM_fadeToRGB(LedArrayAddress[ledSelect], 0,0,0);
+      
+      
+      
+      if (light.getData(data0,data1))
+      {
+         if(data0 > 300) {
+         
+           state = STATE_PREPARE_FOR_DAYTIME_IDLE;
+           break;
+         }
+      }
+      
+      //state = STATE_ARMED_STATE;
+      break; 
+    }
+  }
+ 
 }
 
 void lookForBlinkM() {
@@ -471,39 +415,50 @@ void lookForBlinkM() {
 }
 
 void initialize_and_test_leds() {
+  
+ Serial.println("Initializing and Testing LED Array...");
+ wipe_LCD_screen();
+ lcd.setCursor(0,1);
+ lcd.print("Init LED ARRAY..");
+ 
  if( BLINKM_ARDUINO_POWERED )
     BlinkM_beginWithPower();
   else
     BlinkM_begin();
   
   
-  // Test 0x09 LED functionality
-  BlinkM_playScript( blinkm_addr_a, 18, 0x00,0x00);
-  delay(2000);
-  BlinkM_stopScript(blinkm_addr_a);
-  //delay(100);
-  BlinkM_fadeToRGB(blinkm_addr_a, 0,0,0);
- // delay(100);
+  // Iterate through each LED cluster to test connections
   
- 
- // delay(100);
-  BlinkM_playScript( blinkm_addr_b, 18, 0x00,0x00);
-  delay(2000);
-  BlinkM_stopScript(blinkm_addr_b);
-//  delay(100);
-  BlinkM_fadeToRGB(blinkm_addr_b, 0,0,0);
+  for(int index = 0; index < sizeof(LedArrayAddress);index++) {
+  
+   Serial.print("LED ");
+   Serial.println(index+1);
+   lcd.setCursor(0,2);
+   lcd.print("LED ");
+   lcd.print(index+1);
+   BlinkM_playScript( LedArrayAddress[index], 18, 0x00,0x00);
+   delay(2000);
+   BlinkM_stopScript(LedArrayAddress[index]);
+   //delay(100);
+   BlinkM_fadeToRGB(LedArrayAddress[index], 0,0,0);
+    
+  }
+  delay(200);
+  lcd.print(" Success!");
+  Serial.println("LED Testing Complete!");
   
   
- // delay(100);
-  BlinkM_playScript( blinkm_addr_c, 18, 0x00,0x00);
-  delay(2000);
-  BlinkM_stopScript(blinkm_addr_c);
-//  delay(100);
-  BlinkM_fadeToRGB(blinkm_addr_c, 0,0,0);  
 }
 
 void initialize_real_time_clock() {
   
+  Serial.print("Initializing Real Time Clock...");
+  wipe_LCD_screen();
+  lcd.setCursor(0,1);
+  lcd.print("Init Real Time Clock");
+   
+
+
   RTC.begin();
   DateTime now = RTC.now();
   DateTime compiled = DateTime(__DATE__, __TIME__);
@@ -511,10 +466,22 @@ void initialize_real_time_clock() {
     //Serial.println("RTC is older than compile time!  Updating");
     RTC.adjust(DateTime(__DATE__, __TIME__));
   }  
+  delay(800);
+  Serial.println("Success!");
+  lcd.setCursor(0,3);
+  lcd.print("Success!");
+
+  
+   
+
 }
 
 void initialize_pin_modes() {
   
+  Serial.print("Setting Pin Modes...");
+  wipe_LCD_screen();
+  lcd.setCursor(0,1);
+  lcd.print("Setting Pin Modes");
   pinMode(MICRO_SD_CHIP_SELECT, OUTPUT);     
   pinMode(PIEZO_SOUNDER_PIN,OUTPUT);
   pinMode(BUTTON_PIN_1, INPUT);
@@ -522,14 +489,15 @@ void initialize_pin_modes() {
   pinMode(BUTTON_PIN_3, INPUT);
   pinMode(BUTTON_PIN_4, INPUT);
   pinMode(BUTTON_PIN_5, INPUT);
-  
-  
-  
-  pinMode(PIR_A_SIGNAL_PIN, INPUT);
+  pinMode(DAY_NIGHT_ISR_PIN, INPUT);
   pinMode(PIR_B_SIGNAL_PIN, INPUT);
   pinMode(PIR_A_LED_PIN, OUTPUT);
   pinMode(PIR_B_LED_PIN, OUTPUT);
   pinMode(SS, OUTPUT);
+  delay(800);
+  Serial.println("Success!");
+  lcd.setCursor(0,3);
+  lcd.print("Success!");
 }
 
 void initialize_and_calibrate_PIR_sensor_array() {
@@ -558,6 +526,11 @@ void initialize_lux_sensor() {
 
   // For more information see the hookup guide at: https://learn.sparkfun.com/tutorials/getting-started-with-the-tsl2561-luminosity-sensor
 
+  Serial.print("Initializing Light Sensor...");
+  wipe_LCD_screen();
+  lcd.setCursor(0,1);
+  lcd.print("Init Light Sensor"); 
+   
   light.begin();
 
   // Get factory ID from sensor:
@@ -607,12 +580,17 @@ void initialize_lux_sensor() {
   
   Serial.println("Powerup...");
   light.setPowerUp();
-  
+  delay(100);
   // The sensor will now gather light during the integration time.
   // After the specified time, you can retrieve the result from the sensor.
   // Once a measurement occurs, another integration period will start.
   
-  light.setInterruptControl(1, 15);    // Enable Interrupt Pin Output
+  if(light.setInterruptControl(1, 5))  
+  {
+    
+    Serial.println("Successfully Set Light Dark Interrupt");
+  }
+                                       // Enable Interrupt Pin Output
 			               // Sets up interrupt operations
 			               // If control = 0, interrupt output disabled
 			               // If control = 1, use level interrupt, see setInterruptThreshold()
@@ -622,26 +600,53 @@ void initialize_lux_sensor() {
 			               // Returns true (1) if successful, false (0) if there was an I2C error
 			               // (Also see getError() below)
 
-  light.setInterruptThreshold(300, 1500);  // set LOW and HIGH channel 0 threshholds for Interrupt trigger
+  if(light.setInterruptThreshold(300, 2000))
+  {
+    Serial.println("Successfully reset Dawn Dusk Threshold value");
+  }
+
+                                           // set LOW and HIGH channel 0 threshholds for Interrupt trigger
 			                   // Set interrupt thresholds (channel 0 only)
 			                   // low, high: 16-bit threshold values
 			                   // Returns true (1) if successful, false (0) if there was an I2C error
 			                   // (Also see getError() below)
 
-  attachInterrupt(0,DayNightISR,RISING);  // Attach the interrupt to pin 2.
+  //attachInterrupt(0,DayNightISR,CHANGE);  // Attach the interrupt to pin 2.
+  
+  delay(800);
+  Serial.println("Success!");
+  lcd.setCursor(0,3);
+  lcd.print("Success!");
 }
 
 void initialize_lcd_backpack_and_screen() {
   
+  Serial.print("Initializing LCD Screen...");
   // set up the LCD's number of rows and columns: 
   lcd.begin(20, 4);
-  // Print a message to the LCD.
-  lcd.print("Anti Predator Device");
   
+  wipe_LCD_screen(); // function to clear the screen of contents
+  // Print a message to the LCD.
+  lcd.print("Initializing...");
+  Serial.println("Success!");
+  
+}
+
+void wipe_LCD_screen() {
+  
+  lcd.setCursor(0,0);
+  lcd.print("                    ");
+  lcd.print("                    ");
+  lcd.print("                    ");
+  lcd.print("                    ");
+  lcd.setCursor(0,0);
 }
 
 void initialize_datalogging_sd_card() {
 
+  wipe_LCD_screen();
+  lcd.setCursor(0,1);
+  lcd.print("Init SD Log"); 
   Serial.print("Initializing SD card...");
   // make sure that the default chip select pin is set to
   // output, even if you don't use it:
@@ -663,11 +668,19 @@ void initialize_datalogging_sd_card() {
     while (1) ;
   }
 
+  delay(800);
+  lcd.setCursor(0,3);
+  lcd.print("Success!");
   
 }
 
 void initialize_vs1053_music_player() {
+  
    
+ wipe_LCD_screen();
+ lcd.setCursor(0,1);
+ lcd.print("Init VS1053 Audio");
+  
   if (! musicPlayer.begin()) { // initialise the music player
         Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
         while (1);
@@ -684,18 +697,32 @@ void initialize_vs1053_music_player() {
   // audio playing
   musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);  // DREQ int
    musicPlayer.startPlayingFile("track002.mp3");
+   
+  delay(800);
+  lcd.setCursor(0,3);
+  lcd.print("Success!"); 
+   
  }
  
  void initialize_LCD_menu_system() {
-     //configure menu
+    
+    
+ wipe_LCD_screen();
+ lcd.setCursor(0,1);
+ lcd.print("Init Menu System");
+  
+   //configure menu
   menu.getRoot().add(menu1Item1);
   menu1Item1.addRight(menu1Item2).addRight(menu1Item3);
   menu1Item1.add(menuItem1SubItem1).addRight(menuItem1SubItem2).addRight(menuItem1SubItem3).addRight(menuItem1SubItem4).addRight(menuItem1SubItem5).addRight(menuItem1SubItem6).addRight(menuItem1SubItem7).addRight(menuItem1SubItem8);
   menu1Item2.add(menuItem2SubItem1).addRight(menuItem2SubItem2).addRight(menuItem2SubItem3).addRight(menuItem2SubItem4).addRight(menuItem2SubItem5).addRight(menuItem2SubItem6).addRight(menuItem2SubItem7).addRight(menuItem2SubItem8).addRight(menuItem2SubItem9).addRight(menuItem2SubItem10).addRight(menuItem2SubItem11).addRight(menuItem2SubItem12).addRight(menuItem2SubItem13).addRight(menuItem2SubItem14);
   menu1Item3.add(menuItem3SubItem1).addRight(menuItem3SubItem2).addRight(menuItem3SubItem3).addRight(menuItem3SubItem4).addRight(menuItem3SubItem5);
   menu.toRoot();
-  lcd.setCursor(0,0);  
-  lcd.print("APD Version 1.0     ");
+  delay(800);
+  lcd.setCursor(0,3);
+  lcd.print("Success!"); 
+  delay(500);
+  wipe_LCD_screen();
  }
  
  void initialize_stereo() {
@@ -716,7 +743,8 @@ void initialize_vs1053_music_player() {
   lcd.setCursor(0,2); //set the start position for lcd printing to the second row
   
    if(newMenuItem.getName()==menu.getRoot()){
-      lcd.print("Main Menu           ");
+      wipe_LCD_screen();
+      lcd.print("   .:Menu System:.  ");
   }else if(newMenuItem.getName()=="Select Alarm Modes"){
       lcd.print("Select Alarm Modes  ");
   }else if(newMenuItem.getName()=="Audio Enable"){
@@ -783,14 +811,25 @@ void initialize_vs1053_music_player() {
 }
 
 void menuUsed(MenuUseEvent used){
+  wipe_LCD_screen();
   lcd.setCursor(0,0);  
-  lcd.print("You used        ");
+  lcd.print("You Chose        ");
   lcd.setCursor(0,1); 
   lcd.print(used.item.getName());
   delay(3000);  //delay to allow message reading
-  lcd.setCursor(0,0);  
-  lcd.print("APD");
+  //lcd.setCursor(0,0);  
+  //lcd.print("APD");
+  
   menu.toRoot();  //back to Main
+  if(used.item.getName() == "Audio Enable")
+  {
+    Serial.println("Going back to polling daytime mode now");
+    state =STATE_PREPARE_FOR_DAYTIME_IDLE;
+    wipe_LCD_screen();
+  }
+ 
+  
+ 
 }
  
 void  readButtons(){  //read buttons status

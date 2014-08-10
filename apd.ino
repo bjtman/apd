@@ -126,36 +126,30 @@ File dataFile;                      // Need this to declare a File instance for 
 MenuBackend menu = MenuBackend(menuUsed,menuChanged);  //Menu variables
                                     
                                        
-MenuItem menu1Item1 = MenuItem("Select Alarm Modes");           //initialize menuitems
-MenuItem menuItem1SubItem1 = MenuItem("Audio Enable");
-MenuItem menuItem1SubItem2 = MenuItem("Audio Disable");
-MenuItem menuItem1SubItem3 = MenuItem("Piezo Enable");
-MenuItem menuItem1SubItem4 = MenuItem("Piezo Disable");
-MenuItem menuItem1SubItem5 = MenuItem("Small LED Enable");
-MenuItem menuItem1SubItem6 = MenuItem("Small LED Disable");
-MenuItem menuItem1SubItem7 = MenuItem("Big LED Enable");
-MenuItem menuItem1SubItem8 = MenuItem("Big LED Disable");
-MenuItem menu1Item2 = MenuItem("Select Alarm Pattern");
-MenuItem menuItem2SubItem1 = MenuItem("Small LED Green");
-MenuItem menuItem2SubItem2 = MenuItem("Small LED Red");
-MenuItem menuItem2SubItem3 = MenuItem("Small LED Blue");
-MenuItem menuItem2SubItem4 = MenuItem("Small LED Random");
-MenuItem menuItem2SubItem5 = MenuItem("Large LED Green");
-MenuItem menuItem2SubItem6 = MenuItem("Large LED Red");
-MenuItem menuItem2SubItem7 = MenuItem("Large LED Blue");
-MenuItem menuItem2SubItem8 = MenuItem("Large LED Random");
-MenuItem menuItem2SubItem9 = MenuItem("Piezo Short");
-MenuItem menuItem2SubItem10 = MenuItem("Piezo Long");
-MenuItem menuItem2SubItem11 = MenuItem("Piezo Random");
-MenuItem menuItem2SubItem12 = MenuItem("Audio Track 1");
-MenuItem menuItem2SubItem13 = MenuItem("Audio Track 2");
-MenuItem menuItem2SubItem14 = MenuItem("Audio Random");
-MenuItem menu1Item3 = MenuItem("System Changes");
-MenuItem menuItem3SubItem1 = MenuItem("Clock 12hr format");
-MenuItem menuItem3SubItem2 = MenuItem("Clock 24hr format");
-MenuItem menuItem3SubItem3 = MenuItem("Inc. Light Thresh +5");
-MenuItem menuItem3SubItem4 = MenuItem("Dec. Light Thresh -5");
-MenuItem menuItem3SubItem5 = MenuItem("Reset All");
+MenuItem menu1Item1 =         MenuItem("Select Alarm Modes");           //initialize menuitems
+MenuItem menuItem1SubItem1 =  MenuItem("Audio Enable");
+MenuItem menuItem1SubItem2 =  MenuItem("Audio Disable");
+MenuItem menuItem1SubItem3 =  MenuItem("Piezo Enable");
+MenuItem menuItem1SubItem4 =  MenuItem("Piezo Disable");
+MenuItem menuItem1SubItem5 =  MenuItem("Small LED Enable");
+MenuItem menuItem1SubItem6 =  MenuItem("Small LED Disable");
+MenuItem menuItem1SubItem7 =  MenuItem("Big LED Enable");
+MenuItem menuItem1SubItem8 =  MenuItem("Big LED Disable");
+MenuItem menu1Item2 =         MenuItem("Select Alarm Pattern");
+MenuItem menuItem2SubItem1 =  MenuItem("LEDs Red");
+MenuItem menuItem2SubItem2 =  MenuItem("LEDs Green");
+MenuItem menuItem2SubItem3 =  MenuItem("LEDs Blue");
+MenuItem menuItem2SubItem4 =  MenuItem("LEDs Random Color");
+MenuItem menuItem2SubItem5 =  MenuItem("Piezo Short");
+MenuItem menuItem2SubItem6 =  MenuItem("Piezo Long");
+MenuItem menuItem2SubItem7 =  MenuItem("Piezo Random");
+MenuItem menuItem2SubItem8 =  MenuItem("Audio Track 1");
+MenuItem menuItem2SubItem9 =  MenuItem("Audio Track 2");
+MenuItem menuItem2SubItem10 = MenuItem("Audio Track Random");
+MenuItem menu1Item3 =         MenuItem("System Changes");
+MenuItem menuItem3SubItem1 =  MenuItem("Inc Volume (+)");
+MenuItem menuItem3SubItem2 =  MenuItem("Dec Volume (-)");
+
 
 const boolean BLINKM_ARDUINO_POWERED = true;  // For now this is true. This will change when moving for bench
                                               // testing to field testing
@@ -715,8 +709,8 @@ void initialize_vs1053_music_player() {
   menu.getRoot().add(menu1Item1);
   menu1Item1.addRight(menu1Item2).addRight(menu1Item3);
   menu1Item1.add(menuItem1SubItem1).addRight(menuItem1SubItem2).addRight(menuItem1SubItem3).addRight(menuItem1SubItem4).addRight(menuItem1SubItem5).addRight(menuItem1SubItem6).addRight(menuItem1SubItem7).addRight(menuItem1SubItem8);
-  menu1Item2.add(menuItem2SubItem1).addRight(menuItem2SubItem2).addRight(menuItem2SubItem3).addRight(menuItem2SubItem4).addRight(menuItem2SubItem5).addRight(menuItem2SubItem6).addRight(menuItem2SubItem7).addRight(menuItem2SubItem8).addRight(menuItem2SubItem9).addRight(menuItem2SubItem10).addRight(menuItem2SubItem11).addRight(menuItem2SubItem12).addRight(menuItem2SubItem13).addRight(menuItem2SubItem14);
-  menu1Item3.add(menuItem3SubItem1).addRight(menuItem3SubItem2).addRight(menuItem3SubItem3).addRight(menuItem3SubItem4).addRight(menuItem3SubItem5);
+  menu1Item2.add(menuItem2SubItem1).addRight(menuItem2SubItem2).addRight(menuItem2SubItem3).addRight(menuItem2SubItem4).addRight(menuItem2SubItem5).addRight(menuItem2SubItem6).addRight(menuItem2SubItem7).addRight(menuItem2SubItem8).addRight(menuItem2SubItem9).addRight(menuItem2SubItem10);
+  menu1Item3.add(menuItem3SubItem1).addRight(menuItem3SubItem2);
   menu.toRoot();
   delay(800);
   lcd.setCursor(0,3);
@@ -765,48 +759,32 @@ void initialize_vs1053_music_player() {
       lcd.print("Big LED Disable     ");
   }else if(newMenuItem.getName()=="Select Alarm Pattern"){
       lcd.print("Select Alarm Pattern");
-  }else if(newMenuItem.getName()=="Small LED Green"){
-      lcd.print("Small LED Green     ");
-  }else if(newMenuItem.getName()=="Small LED Red"){
-      lcd.print("Small LED Red       ");
-  }else if(newMenuItem.getName()=="Small LED Blue"){
-      lcd.print("Small LED Blue      ");
-  }else if(newMenuItem.getName()=="Small LED Random"){
-      lcd.print("Small LED Random    ");
-  }else if(newMenuItem.getName()=="Large LED Green"){
-      lcd.print("Large LED Green     ");
-  }else if(newMenuItem.getName()=="Large LED Red"){
-      lcd.print("Large LED Red       ");
-  }else if(newMenuItem.getName()=="Large LED Blue"){
-      lcd.print("Large LED Blue      ");
-  }else if(newMenuItem.getName()=="Large LED Random"){
-      lcd.print("Large LED Random    ");
+  }else if(newMenuItem.getName()=="LEDs Red"){
+      lcd.print("LEDs Red            ");
+  }else if(newMenuItem.getName()=="LEDs Green"){
+      lcd.print("LEDs Green          ");
+  }else if(newMenuItem.getName()=="LEDs Blue"){
+      lcd.print("LEDs Blue           ");
+  }else if(newMenuItem.getName()=="LEDs Random Color"){
+      lcd.print("LEDs Random Color   ");
   }else if(newMenuItem.getName()=="Piezo Short"){
       lcd.print("Piezo Short         ");
   }else if(newMenuItem.getName()=="Piezo Long"){
       lcd.print("Piezo Long          ");
   }else if(newMenuItem.getName()=="Piezo Random"){
-      lcd.print("Piezo Random        ");    
+      lcd.print("Piezo Random        ");
   }else if(newMenuItem.getName()=="Audio Track 1"){
       lcd.print("Audio Track 1       ");
   }else if(newMenuItem.getName()=="Audio Track 2"){
       lcd.print("Audio Track 2       ");
-  }else if(newMenuItem.getName()=="Audio Random"){
-      lcd.print("Audio Random        ");
+  }else if(newMenuItem.getName()=="Audio Track Random"){
+      lcd.print("Audio Track Random  ");
   }else if(newMenuItem.getName()=="System Changes"){
-      lcd.print("System Changes      ");
-  }else if(newMenuItem.getName()=="Clock 12hr format"){
-      lcd.print("Clock 12hr format   ");
-  }else if(newMenuItem.getName()=="Clock 24hr format"){
-      lcd.print("Clock 24hr format   ");
-  }else if(newMenuItem.getName()=="Inc. Light Thresh +5"){
-      lcd.print("Inc. Light Thresh +5");
-  }else if(newMenuItem.getName()=="Dec. Light Thresh -5"){
-      lcd.print("Dec. Light Thresh -5");
-  }else if(newMenuItem.getName()=="Big LED Enable"){
-      lcd.print("Big LED Enable      ");
-  }else if(newMenuItem.getName()=="Reset All"){
-      lcd.print("Reset All           ");
+      lcd.print("System Changes      ");    
+  }else if(newMenuItem.getName()=="Inc Volume (+)"){
+      lcd.print("Inc Volume (+)      ");
+  }else if(newMenuItem.getName()=="Dec Volume (-)"){
+      lcd.print("Dec Volume (-)      ");
   }
 }
 

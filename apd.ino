@@ -1,5 +1,5 @@
-// APD version 1.1.13
-// 8/9/14
+// APD version 1.1.14
+// 8/10/14
 // Brian Tice
 // 
 
@@ -704,7 +704,7 @@ void initialize_vs1053_music_player() {
   Serial.println(F("VS1053 found"));
    
   // Set volume for left, right channels. lower numbers == louder volume!
-  musicPlayer.setVolume(20,20);
+  musicPlayer.setVolume(10,10);
 
   // Timer interrupts are not suggested, better to use DREQ interrupt!
   //musicPlayer.useInterrupt(VS1053_FILEPLAYER_TIMER0_INT); // timer int
@@ -712,7 +712,7 @@ void initialize_vs1053_music_player() {
   // If DREQ is on an interrupt pin (on uno, #2 or #3) we can do background
   // audio playing
   musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);  // DREQ int
-   musicPlayer.startPlayingFile("track002.mp3");
+   musicPlayer.startPlayingFile("track001.mp3");
    
   delay(800);
   lcd.setCursor(0,3);
@@ -837,6 +837,41 @@ void menuUsed(MenuUseEvent used){
     wipe_LCD_screen();
   }
  
+  if(used.item.getName() == "Audio Track 1")
+  {
+    SD.end();
+    SD.begin(CARDCS);    // initialise the SD card
+    Serial.println("Playing Audio Track 1");
+    musicPlayer.startPlayingFile("track001.mp3");
+    delay(3000);
+    
+    state =STATE_PREPARE_FOR_DAYTIME_IDLE;
+    wipe_LCD_screen();
+  }
+   
+  if(used.item.getName() == "Audio Track 2")
+  {
+    SD.end();
+    SD.begin(CARDCS);    // initialise the SD card
+    Serial.println("Playing Audio Track 2");
+    musicPlayer.startPlayingFile("track002.mp3");
+    delay(3000);
+    
+    state =STATE_PREPARE_FOR_DAYTIME_IDLE;
+    wipe_LCD_screen();
+  }
+  
+  if(used.item.getName() == "Audio Track Random")
+  {
+    SD.end();
+    SD.begin(CARDCS);    // initialise the SD card
+    Serial.println("Playing Audio Track Random");
+    musicPlayer.startPlayingFile("track003.mp3");
+    
+    
+    state =STATE_PREPARE_FOR_DAYTIME_IDLE;
+    wipe_LCD_screen();
+  }
   
  
 }

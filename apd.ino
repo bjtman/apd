@@ -28,7 +28,7 @@
                              // adafruit that includes I2C support
 
 #include <MenuBackend.h>     //MenuBackend library - need this to run LCD menu routine
-                             // Compliments of Alexander Brevig
+                             // Compliments of Alexander-m  Brevig
                              
                              // IMPORTANT: to use the menubackend library by Alexander Brevig download it at
                              // http://www.arduino.cc/playground/uploads/Profiles/MenuBackend_1-4.zip 
@@ -149,7 +149,8 @@ MenuItem menuItem2SubItem10 = MenuItem("Audio Track Random");
 MenuItem menu1Item3 =         MenuItem("System Changes");
 MenuItem menuItem3SubItem1 =  MenuItem("Inc Volume (+)");
 MenuItem menuItem3SubItem2 =  MenuItem("Dec Volume (-)");
-
+MenuItem menu1Item4 =         MenuItem("Done");
+MenuItem menu1Item4SubItem1 = MenuItem("Finished with Menu");
 
 const boolean BLINKM_ARDUINO_POWERED = true;  // For now this is true. This will change when moving for bench
                                               // testing to field testing
@@ -160,6 +161,27 @@ byte blinkm_addr_c = 0x0D;          // I2C Address of one of the LED's. LED C
 
 byte LedArrayAddress[3] = {0x09,0x0C,0x0D};    // Global array that houses LED addresses
 
+
+// Global Variables for Menu selection items
+// these are flags and booleans that determine armed state functionality
+
+boolean audio_enabled;
+boolean piezo_enabled;
+boolean big_LED_enabled;
+boolean small_LED_enabled;
+
+int pattern_type;         // RED =    1
+                          // Green =  2
+                          // Blue =   3
+                          // Random = 4
+
+int piezo_time_length;    // Short = 2seconds
+                          // Long = 4 seconds
+                          // Random(2,6)
+                          
+int play_track;           // 1,2 or 3 for random
+
+int volume;               // 0-63. (+) means up 3. (-) means down 3. plus check boundary conditions.
 
 volatile int state = 0;
 boolean gain;     // Gain setting, 0 = X1, 1 = X16;
@@ -707,10 +729,11 @@ void initialize_vs1053_music_player() {
   
    //configure menu
   menu.getRoot().add(menu1Item1);
-  menu1Item1.addRight(menu1Item2).addRight(menu1Item3);
+  menu1Item1.addRight(menu1Item2).addRight(menu1Item3).addRight(menu1Item4);
   menu1Item1.add(menuItem1SubItem1).addRight(menuItem1SubItem2).addRight(menuItem1SubItem3).addRight(menuItem1SubItem4).addRight(menuItem1SubItem5).addRight(menuItem1SubItem6).addRight(menuItem1SubItem7).addRight(menuItem1SubItem8);
   menu1Item2.add(menuItem2SubItem1).addRight(menuItem2SubItem2).addRight(menuItem2SubItem3).addRight(menuItem2SubItem4).addRight(menuItem2SubItem5).addRight(menuItem2SubItem6).addRight(menuItem2SubItem7).addRight(menuItem2SubItem8).addRight(menuItem2SubItem9).addRight(menuItem2SubItem10);
   menu1Item3.add(menuItem3SubItem1).addRight(menuItem3SubItem2);
+  menu1Item4.add(menu1Item4SubItem1);
   menu.toRoot();
   delay(800);
   lcd.setCursor(0,3);
@@ -725,6 +748,10 @@ void initialize_vs1053_music_player() {
     Serial.println("Failed to set volume, MAX9744 not found!");
     
   }
+  
+  digitalWrite(PIEZO_SOUNDER_PIN,HIGH);
+  delay(2000);
+  digitalWrite(PIEZO_SOUNDER_PIN,LOW);
    
  }
  
@@ -785,6 +812,10 @@ void initialize_vs1053_music_player() {
       lcd.print("Inc Volume (+)      ");
   }else if(newMenuItem.getName()=="Dec Volume (-)"){
       lcd.print("Dec Volume (-)      ");
+  }else if(newMenuItem.getName()=="Done"){
+      lcd.print("       Done         ");
+  }else if(newMenuItem.getName()=="Finished with Menu"){
+      lcd.print(" Finished with Menu ");
   }
 }
 
@@ -799,7 +830,7 @@ void menuUsed(MenuUseEvent used){
   //lcd.print("APD");
   
   menu.toRoot();  //back to Main
-  if(used.item.getName() == "Audio Enable")
+  if(used.item.getName() == "Finished with Menu")
   {
     Serial.println("Going back to polling daytime mode now");
     state =STATE_PREPARE_FOR_DAYTIME_IDLE;

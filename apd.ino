@@ -1,5 +1,5 @@
-// APD version 1.1.14
-// 8/10/14
+// APD version 1.1.13
+// 8/11/14
 // Brian Tice
 // 
 
@@ -391,12 +391,12 @@ void loop() {
      
       int ledSelect = random(0,3);
  
-      unsigned long delayBlinkTime = random(1000,10000);
+      unsigned long delayBlinkTime = random(500,2000);
      
       
       
       BlinkM_playScript( LedArrayAddress[ledSelect], randomLEDProgram, 0x00,0x00);
-      //delay(delayBlinkTime);
+      delay(delayBlinkTime);
       BlinkM_stopScript(LedArrayAddress[ledSelect]);
       BlinkM_fadeToRGB(LedArrayAddress[ledSelect], 0,0,0);
       

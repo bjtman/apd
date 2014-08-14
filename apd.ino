@@ -1,5 +1,5 @@
-// APD version 1.1.13
-// 8/11/14
+// APD version 1.1.14
+// 8/14/14
 // Brian Tice
 // 
 
@@ -67,7 +67,7 @@
 
 #define PIR_A_LED_PIN         40
 #define PIR_B_LED_PIN         41
-#define DAY_NIGHT_ISR_PIN       2
+#define DAY_NIGHT_ISR_PIN      2
 #define PIR_B_SIGNAL_PIN      18
 #define PIR_CALIBRATION_TIME   5
 
@@ -351,7 +351,36 @@ void loop() {
     {
       
       Serial.println("Preparing for Daytime Idle mode...");
-     // attachInterrupt(0,DayNightISR,FALLING);  // Attach the interrupt to pin 2.
+      
+      
+      // Access the SD card, log current setting and timestamp to the SD card, close the SD Card
+      DateTime now = RTC.now();
+      SD.end();
+      SD.begin(MICRO_SD_CHIP_SELECT);
+      
+      dataFile = SD.open("datalog.txt", FILE_WRITE);
+      dataFile.print(now.year(), DEC);
+      dataFile.print('/');
+      dataFile.print(now.month(), DEC);
+      dataFile.print('/');
+      dataFile.print(now.day(), DEC);
+      dataFile.print(' ');
+      dataFile.print(now.hour(), DEC);
+      dataFile.print(':');
+      dataFile.print(now.minute(), DEC);
+      dataFile.print(':');
+      dataFile.print(now.second(), DEC);
+      dataFile.print(" Current system settings: ");
+      dataFile.print(" ");
+      dataFile.print(pattern_type, DEC);
+      dataFile.print(" ");
+      dataFile.println(piezo_time_length, DEC);
+      
+      dataFile.flush();
+      dataFile.close();
+      SD.end();
+      
+      // attachInterrupt(0,DayNightISR,FALLING);  // Attach the interrupt to pin 2.
       attachInterrupt(4,pin_19_ISR,CHANGE);
       state = STATE_DAYTIME_IDLE;
       break;
@@ -704,7 +733,7 @@ void initialize_vs1053_music_player() {
   Serial.println(F("VS1053 found"));
    
   // Set volume for left, right channels. lower numbers == louder volume!
-  musicPlayer.setVolume(10,10);
+  musicPlayer.setVolume(2,2);
 
   // Timer interrupts are not suggested, better to use DREQ interrupt!
   //musicPlayer.useInterrupt(VS1053_FILEPLAYER_TIMER0_INT); // timer int
@@ -868,7 +897,7 @@ void menuUsed(MenuUseEvent used){
     Serial.println("Playing Audio Track Random");
     musicPlayer.startPlayingFile("track003.mp3");
     
-    
+    delay(3000);
     state =STATE_PREPARE_FOR_DAYTIME_IDLE;
     wipe_LCD_screen();
   }

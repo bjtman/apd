@@ -72,6 +72,7 @@
 #define SOUND_SWITCH_PIN      12
 #define PIR_CALIBRATION_TIME   5
 
+#define MUTE_AUDIO_PIN         45
 
 #define STATE_DAYTIME_IDLE              2
 #define STATE_MENU_ISR                  3
@@ -482,7 +483,7 @@ void loop() {
       {
         
         int probabilityofSound = random(0,50);
-        if(probabilityofSound < 25) {
+        if(probabilityofSound < 10) {
           
           int randomPiezotime = random(1,1500);   // Piezo element goes High for 1ms to 1500ms
           digitalWrite(PIEZO_SOUNDER_PIN,HIGH);
@@ -608,6 +609,7 @@ void initialize_pin_modes() {
   pinMode(PIR_A_LED_PIN, OUTPUT);
   pinMode(PIR_B_LED_PIN, OUTPUT);
   pinMode(SOUND_SWITCH_PIN,INPUT);
+  pinMode(MUTE_AUDIO_PIN,OUTPUT);
   pinMode(SS, OUTPUT);
   delay(800);
   Serial.println("Success!");
@@ -851,7 +853,8 @@ void initialize_vs1053_music_player() {
   digitalWrite(PIEZO_SOUNDER_PIN,HIGH);
   delay(2000);
   digitalWrite(PIEZO_SOUNDER_PIN,LOW);
-   
+  
+  digitalWrite(MUTE_AUDIO_PIN,LOW); 
  }
  
  
@@ -938,36 +941,40 @@ void menuUsed(MenuUseEvent used){
  
   if(used.item.getName() == "Audio Track 1")
   {
+    digitalWrite(MUTE_AUDIO_PIN,HIGH); 
     SD.end();
     SD.begin(CARDCS);    // initialise the SD card
     Serial.println("Playing Audio Track 1");
     musicPlayer.startPlayingFile("track001.mp3");
     delay(3000);
-    
+    digitalWrite(MUTE_AUDIO_PIN,LOW); 
     state =STATE_PREPARE_FOR_DAYTIME_IDLE;
     wipe_LCD_screen();
   }
    
   if(used.item.getName() == "Audio Track 2")
   {
+    digitalWrite(MUTE_AUDIO_PIN,HIGH); 
     SD.end();
     SD.begin(CARDCS);    // initialise the SD card
     Serial.println("Playing Audio Track 2");
     musicPlayer.startPlayingFile("track002.mp3");
     delay(3000);
-    
+    digitalWrite(MUTE_AUDIO_PIN,LOW); 
     state =STATE_PREPARE_FOR_DAYTIME_IDLE;
     wipe_LCD_screen();
   }
   
   if(used.item.getName() == "Audio Track Random")
   {
+    digitalWrite(MUTE_AUDIO_PIN,HIGH); 
     SD.end();
     SD.begin(CARDCS);    // initialise the SD card
     Serial.println("Playing Audio Track Random");
     musicPlayer.startPlayingFile("track003.mp3");
     
     delay(3000);
+    digitalWrite(MUTE_AUDIO_PIN,LOW); 
     state =STATE_PREPARE_FOR_DAYTIME_IDLE;
     wipe_LCD_screen();
   }

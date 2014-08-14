@@ -69,6 +69,7 @@
 #define PIR_B_LED_PIN         41
 #define DAY_NIGHT_ISR_PIN      2
 #define PIR_B_SIGNAL_PIN      18
+#define SOUND_SWITCH_PIN      12
 #define PIR_CALIBRATION_TIME   5
 
 
@@ -191,6 +192,8 @@ int play_track;           // 1,2 or 3 for random
 
 int volume;               // 0-63. (+) means up 3. (-) means down 3. plus check boundary conditions.
 
+
+
 volatile int state = 0;
 boolean gain;     // Gain setting, 0 = X1, 1 = X16;
 unsigned int ms;  // Integration ("shutter") time in milliseconds
@@ -201,6 +204,8 @@ const int buttonPinLeft =   30;      // pin for the Up button
 const int buttonPinRight =  31;     // pin for the Down button
 const int buttonPinEsc =    32;       // pin for the Esc button
 const int buttonPinEnter =  33;     // pin for the Enter button
+
+
 int lastButtonPushed = 0;
 
 int lastButtonEnterState = LOW;   // the previous reading from the Enter input pin
@@ -454,7 +459,7 @@ void loop() {
      
       if(pattern_type == BLUE_LED_PATTERN_TYPE)
       {
-        randomLEDProgram = 13;  // 5 and 13 are Blue only scripts
+        randomLEDProgram = 5;  // 5 and 13 are Blue only scripts
       }
       if(pattern_type == RED_LED_PATTERN_TYPE)
       {
@@ -471,7 +476,21 @@ void loop() {
       int ledSelect = random(0,3);  // Scale this when we add more LED's
  
       unsigned long delayBlinkTime = random(500,2000);
-     
+      
+      int SoundSwitchState = digitalRead(SOUND_SWITCH_PIN);
+      if(SoundSwitchState == HIGH)
+      {
+        
+        int probabilityofSound = random(0,50);
+        if(probabilityofSound < 25) {
+          
+          int randomPiezotime = random(1,1500);   // Piezo element goes High for 1ms to 1500ms
+          digitalWrite(PIEZO_SOUNDER_PIN,HIGH);
+          delay(randomPiezotime);
+          digitalWrite(PIEZO_SOUNDER_PIN,LOW);
+        }
+      }
+      
       
       
       BlinkM_playScript( LedArrayAddress[ledSelect], randomLEDProgram, 0x00,0x00);
@@ -588,6 +607,7 @@ void initialize_pin_modes() {
   pinMode(PIR_B_SIGNAL_PIN, INPUT);
   pinMode(PIR_A_LED_PIN, OUTPUT);
   pinMode(PIR_B_LED_PIN, OUTPUT);
+  pinMode(SOUND_SWITCH_PIN,INPUT);
   pinMode(SS, OUTPUT);
   delay(800);
   Serial.println("Success!");

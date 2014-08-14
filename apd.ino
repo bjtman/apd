@@ -80,6 +80,11 @@
 #define STATE_ARMED_STATE               7
 
 
+// Create constants for LED pattern types:
+#define RED_LED_PATTERN_TYPE       1
+#define GREEN_LED_PATTERN_TYPE     2
+#define BLUE_LED_PATTERN_TYPE      3
+#define RANDOM_LED_PATTERN_TYPE    4
 
 #define MAX9744_I2CADDR 0x4B // 0x4B is the default i2c address for MAX 9744 Class D Amp
 #define STARTUP_VOLUME 53 
@@ -174,6 +179,9 @@ int pattern_type;         // RED =    1
                           // Green =  2
                           // Blue =   3
                           // Random = 4
+
+
+
 
 int piezo_time_length;    // Short = 2seconds
                           // Long = 4 seconds
@@ -399,7 +407,33 @@ void loop() {
                                           // Turn back on when day is upon us in the African Wild.
                                           // Tibetan Plains
                                           
-       
+        // Access the SD card, log current setting and timestamp to the SD card, close the SD Card
+      DateTime now = RTC.now();
+      SD.end();
+      SD.begin(MICRO_SD_CHIP_SELECT);
+      
+      dataFile = SD.open("datalog.txt", FILE_WRITE);
+      dataFile.print(now.year(), DEC);
+      dataFile.print('/');
+      dataFile.print(now.month(), DEC);
+      dataFile.print('/');
+      dataFile.print(now.day(), DEC);
+      dataFile.print(' ');
+      dataFile.print(now.hour(), DEC);
+      dataFile.print(':');
+      dataFile.print(now.minute(), DEC);
+      dataFile.print(':');
+      dataFile.print(now.second(), DEC);
+      dataFile.print(" Going into Night Mode (Armed State.");
+      dataFile.print(" Current system settings: ");
+      dataFile.print(" ");
+      dataFile.print(pattern_type, DEC);
+      dataFile.print(" ");
+      dataFile.println(piezo_time_length, DEC);
+      
+      dataFile.flush();
+      dataFile.close();
+      SD.end();
        
        state = STATE_ARMED_STATE;
        break;
@@ -418,7 +452,23 @@ void loop() {
     
       long randomLEDProgram = random(0,19);
      
-      int ledSelect = random(0,3);
+      if(pattern_type == BLUE_LED_PATTERN_TYPE)
+      {
+        randomLEDProgram = 13;  // 5 and 13 are Blue only scripts
+      }
+      if(pattern_type == RED_LED_PATTERN_TYPE)
+      {
+        randomLEDProgram = 13;  // 5 and 13 are Blue only scripts
+      }
+      if(pattern_type == GREEN_LED_PATTERN_TYPE)
+      {
+        randomLEDProgram = 5;  // 5 and 13 are Blue only scripts
+      }
+      if(pattern_type == RANDOM_LED_PATTERN_TYPE)
+      {
+        randomLEDProgram = random(0,19);  // 5 and 13 are Blue only scripts
+      }
+      int ledSelect = random(0,3);  // Scale this when we add more LED's
  
       unsigned long delayBlinkTime = random(500,2000);
      
@@ -902,6 +952,23 @@ void menuUsed(MenuUseEvent used){
     wipe_LCD_screen();
   }
   
+  if(used.item.getName() == "LEDs Blue")
+  {
+    pattern_type = BLUE_LED_PATTERN_TYPE;
+    Serial.println("Changed LED's to blue only");
+    delay(1000);
+    state =STATE_PREPARE_FOR_DAYTIME_IDLE;
+    wipe_LCD_screen();
+  }
+ 
+  if(used.item.getName() == "LEDs Random Color")
+  {
+    pattern_type = RANDOM_LED_PATTERN_TYPE;
+    Serial.println("Changed LED's to Random Script");
+    delay(1000);
+    state =STATE_PREPARE_FOR_DAYTIME_IDLE;
+    wipe_LCD_screen();
+  } 
  
 }
  

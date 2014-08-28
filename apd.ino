@@ -1,5 +1,5 @@
-// APD version 1.1.14
-// 8/14/14
+// APD version 1.1.15
+// 8/27/14
 // Brian Tice
 // 
 
@@ -90,6 +90,8 @@
 
 #define MAX9744_I2CADDR 0x4B // 0x4B is the default i2c address for MAX 9744 Class D Amp
 #define STARTUP_VOLUME 53 
+
+//#define VS1053_FILEPLAYER_PIN_INT 3
 
 #define LOW_LIGHT_THRESHOLD 300 // This is the threshold that determines the transition from daytime idle to armed state. 
                                 // Once in armed state, 
@@ -946,7 +948,11 @@ void menuUsed(MenuUseEvent used){
     SD.begin(CARDCS);    // initialise the SD card
     Serial.println("Playing Audio Track 1");
     musicPlayer.startPlayingFile("track001.mp3");
-    delay(3000);
+    
+    while(musicPlayer.playingMusic) {
+      // do nothing,
+    }
+    // delay(3000);
     digitalWrite(MUTE_AUDIO_PIN,LOW); 
     state =STATE_PREPARE_FOR_DAYTIME_IDLE;
     wipe_LCD_screen();

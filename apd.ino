@@ -1,5 +1,5 @@
-// APD version 1.1.16
-// 8/27/14
+// APD version 1.1.17
+// 8/28/14
 // Brian Tice
 // 
 
@@ -168,7 +168,7 @@ byte blinkm_addr_a = 0x09;          // I2C Address of one of the LED's. LED A
 byte blinkm_addr_b = 0x0C;          // I2C Address of one of the LED's. LED B 
 byte blinkm_addr_c = 0x0D;          // I2C Address of one of the LED's. LED C
 
-byte LedArrayAddress[8] = {0x09,0x0C,0x0D,0x04,0x05,0x06,0x07,0x08};    // Global array that houses LED addresses
+byte LedArrayAddress[11] = {0x09,0x0C,0x0D,0x04,0x05,0x06,0x07,0x08,0x0A,0x0B,0x0E};    // Global array that houses LED addresses
 
 
 // Global Variables for Menu selection items
@@ -476,7 +476,7 @@ void loop() {
       {
         randomLEDProgram = random(0,19);  // 5 and 13 are Blue only scripts
       }
-      int ledSelect = random(0,8);  // Scale this when we add more LED's
+      int ledSelect = random(0,11);  // Scale this when we add more LED's
  
       unsigned long delayBlinkTime = random(500,2000);
       
